@@ -133,43 +133,52 @@
       }
     }
 
-    document.getElementById('registerForm').addEventListener('submit', function (e) {
+    document.getElementById('registerForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const name = document.getElementById('fullName').value;
       const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
       const role = document.getElementById('roleSelect').value;
 
-      if (role === 'user') {
-        const users = SHD_Data.getUsers();
-        users.push({
-          id: 'u_' + Date.now(),
-          name: name,
-          email: email,
-          role: 'user',
-          age: document.getElementById('age').value || 24,
-          height: document.getElementById('height').value || 165,
-          weight: document.getElementById('weight').value || 65,
-          goal: document.getElementById('goal').value,
-          dailyCalorieLimit: 2000
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            full_name: name, 
+            email: email, 
+            password: password, 
+            role: role,
+            age: role === 'user' ? parseInt(document.getElementById('age').value) : null,
+            height_cm: role === 'user' ? parseFloat(document.getElementById('height').value) : null,
+            current_weight_kg: role === 'user' ? parseFloat(document.getElementById('weight').value) : null,
+            primary_goal: role === 'user' ? document.getElementById('goal').value : null,
+            daily_calorie_target: role === 'user' ? 2000 : null,
+            specialty: role === 'dietitian' ? document.getElementById('specialty').value : null
+          })
         });
-        localStorage.setItem('shd_users', JSON.stringify(users));
-        alert('Account created successfully! Redirecting to login page...');
-      } else {
-        const dietitians = SHD_Data.getDietitians();
-        dietitians.push({
-          id: 'd_' + Date.now(),
-          name: name,
-          email: email,
-          specialty: document.getElementById('specialty').value || 'Clinical Dietitian',
-          status: 'Pending',
-          rating: 5.0,
-          avatar: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80'
-        });
-        localStorage.setItem('shd_dietitians', JSON.stringify(dietitians));
-        alert('Dietitian application submitted! Pending Admin approval. Redirecting to login page...');
-      }
 
-      window.location.href = 'login.html';
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Store token in cookies
+          if (data.session && data.session.access_token) {
+            document.cookie = "shd_token=" + data.session.access_token + "; path=/; max-age=604800"; // 7 days
+            localStorage.setItem('shd_token', data.session.access_token);
+          }
+
+          alert(role === 'user' ? 'Account created successfully! Redirecting to login page...' : 'Dietitian application submitted! Pending Admin approval. Redirecting to login page...');
+
+          window.location.href = 'login.html';
+        } else {
+          alert('Registration failed: ' + (data.message || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error during registration:', error);
+        alert('An error occurred during registration. Please ensure the backend server is running.');
+      }
     });
   </script>
 </body>

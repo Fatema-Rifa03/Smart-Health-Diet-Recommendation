@@ -51,6 +51,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -67,7 +71,7 @@
       </div>
 
       <div style="border-top: 1px solid var(--border); padding-top: 16px;">
-        <a href="../auth/login.html" class="sidebar-link text-danger" onclick="localStorage.removeItem('shd_current_user')">
+        <a href="#" class="sidebar-link text-danger" onclick="event.preventDefault(); SHD_UI.logout();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="9"/></svg>
           Sign Out
         </a>
@@ -200,61 +204,88 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderUserDashboard() {
-      const meals = SHD_Data.getLoggedMeals();
-      const water = SHD_Data.getWaterLog();
-      const user = SHD_Data.getCurrentUser() || { name: 'Fatema Rifa' };
-
-      document.getElementById('userNameDisplay').textContent = user.name;
-      document.getElementById('bannerUserName').textContent = user.name.split(' ')[0];
-
-      const totalCalories = meals.reduce((sum, m) => sum + parseInt(m.calories || 0), 0);
-      const limit = 2000;
-
-      document.getElementById('currentCaloriesVal').textContent = totalCalories.toLocaleString();
-      document.getElementById('limitCaloriesVal').textContent = limit.toLocaleString();
-
-      const pct = Math.min(100, Math.round((totalCalories / limit) * 100));
-      document.getElementById('calorieSvgRing').setAttribute('stroke-dasharray', `${pct}, 100`);
-      document.getElementById('caloriePercentText').textContent = `${pct}% limit consumed`;
-
-      const alertBox = document.getElementById('calorieAlertContainer');
-      if (totalCalories >= limit) {
-        alertBox.innerHTML = `
-          <div class="alert alert-danger">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>Calorie Limit Exceeded!</strong> You have consumed ${totalCalories} kcal today (Limit: 2,000 kcal).</span>
-          </div>
-        `;
-      } else if (pct >= 80) {
-        alertBox.innerHTML = `
-          <div class="alert alert-warning">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span><strong>Calorie Warning:</strong> You have reached ${pct}% of your daily calorie allowance.</span>
-          </div>
-        `;
+    async function renderUserDashboard() {
+      const token = localStorage.getItem('shd_token');
+      if (!token) {
+        window.location.href = '../auth/login.html';
+        return;
       }
 
-      document.getElementById('waterCurrentVal').textContent = water.currentAmount;
-      const waterPct = Math.min(100, Math.round((water.currentAmount / water.targetAmount) * 100));
-      document.getElementById('waterBar').style.width = waterPct + '%';
+      try {
+        const response = await fetch('http://localhost:5000/api/tracking/dashboard', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const result = await response.json();
+        
+        if (!result.success) {
+          console.error('Failed to fetch dashboard data:', result.message);
+          return;
+        }
 
-      const tbody = document.getElementById('dashboardMealsTable');
-      if (meals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No meals logged for today.</td></tr>`;
-      } else {
-        tbody.innerHTML = meals.map(m => `
-          <tr>
-            <td><span class="badge badge-primary">${m.category}</span></td>
-            <td class="font-bold">${m.name}</td>
-            <td class="font-bold text-primary">${m.calories} kcal</td>
-            <td class="text-muted text-xs">${m.loggedAt || 'Today'}</td>
-            <td><span class="badge badge-success">Logged</span></td>
-          </tr>
-        `).join('');
+        const { calories, water, sleep, meals } = result.data;
+        const userStr = localStorage.getItem('shd_current_user');
+        const user = userStr ? JSON.parse(userStr) : { full_name: 'Patient' };
+
+        document.getElementById('userNameDisplay').textContent = user.full_name;
+        document.getElementById('bannerUserName').textContent = user.full_name.split(' ')[0];
+
+        // Calories
+        document.getElementById('currentCaloriesVal').textContent = calories.consumed.toLocaleString();
+        document.getElementById('limitCaloriesVal').textContent = calories.target.toLocaleString();
+
+        const pct = Math.min(100, Math.round((calories.consumed / calories.target) * 100)) || 0;
+        document.getElementById('calorieSvgRing').setAttribute('stroke-dasharray', `${pct}, 100`);
+        document.getElementById('caloriePercentText').textContent = `${pct}% limit consumed`;
+
+        const alertBox = document.getElementById('calorieAlertContainer');
+        if (calories.consumed >= calories.target) {
+          alertBox.innerHTML = `
+            <div class="alert alert-danger">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span><strong>Calorie Limit Exceeded!</strong> You have consumed ${calories.consumed} kcal today (Limit: ${calories.target} kcal).</span>
+            </div>
+          `;
+        } else if (pct >= 80) {
+          alertBox.innerHTML = `
+            <div class="alert alert-warning">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span><strong>Calorie Warning:</strong> You have reached ${pct}% of your daily calorie allowance.</span>
+            </div>
+          `;
+        } else {
+            alertBox.innerHTML = '';
+        }
+
+        // Water
+        document.getElementById('waterCurrentVal').textContent = water.consumed;
+        const waterPct = Math.min(100, Math.round((water.consumed / water.target) * 100)) || 0;
+        document.getElementById('waterBar').style.width = waterPct + '%';
+
+        // Sleep
+        const sleepDurationEl = document.querySelector('.stat-card:nth-child(3) .stat-value');
+        const sleepQualityEl = document.querySelector('.stat-card:nth-child(3) .text-primary');
+        if (sleepDurationEl) sleepDurationEl.textContent = sleep.duration || '0';
+        if (sleepQualityEl) sleepQualityEl.textContent = (sleep.quality || '0') + '/100';
+
+        // Meals Table
+        const tbody = document.getElementById('dashboardMealsTable');
+        if (!meals || meals.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No meals logged for today.</td></tr>`;
+        } else {
+          tbody.innerHTML = meals.map(m => `
+            <tr>
+              <td><span class="badge badge-primary">${m.category}</span></td>
+              <td class="font-bold">${m.meal_name}</td>
+              <td class="font-bold text-primary">${m.calories} kcal</td>
+              <td class="text-muted text-xs">${new Date(m.logged_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+              <td><span class="badge badge-success">Logged</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
       }
     }
 

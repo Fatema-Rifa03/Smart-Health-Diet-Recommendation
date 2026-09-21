@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -187,7 +191,6 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
     function calculateBMI() {
@@ -214,23 +217,81 @@
       }
     }
 
-    document.getElementById('healthProfileForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const users = SHD_Data.getUsers();
-      const u = users[0] || {};
-      u.name = document.getElementById('fullName').value;
-      u.age = parseInt(document.getElementById('age').value);
-      u.height = parseFloat(document.getElementById('height').value);
-      u.weight = parseFloat(document.getElementById('weight').value);
-      u.targetWeight = parseFloat(document.getElementById('targetWeight').value);
-      u.goal = document.getElementById('goalSelect').value;
-      u.dailyCalorieLimit = parseInt(document.getElementById('dailyCalorieLimit').value);
+    async function loadProfile() {
+      const token = localStorage.getItem('shd_token');
+      if (!token) return;
+      
+      const userStr = localStorage.getItem('shd_current_user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        document.getElementById('fullName').value = user.full_name;
+        document.getElementById('fullName').readOnly = true;
+        document.getElementById('fullName').style.backgroundColor = 'var(--bg-page)';
+        document.getElementById('email').value = user.email;
+      }
 
-      localStorage.setItem('shd_users', JSON.stringify(users));
-      alert('Health profile and goals updated successfully!');
+      try {
+        const res = await fetch('http://localhost:5000/api/profile', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.profile) {
+          const p = data.profile;
+          if (p.age) document.getElementById('age').value = p.age;
+          if (p.gender) document.getElementById('gender').value = p.gender;
+          if (p.height_cm) document.getElementById('height').value = p.height_cm;
+          if (p.current_weight_kg) document.getElementById('weight').value = p.current_weight_kg;
+          if (p.target_weight_kg) document.getElementById('targetWeight').value = p.target_weight_kg;
+          if (p.primary_goal) document.getElementById('goalSelect').value = p.primary_goal;
+          if (p.daily_calorie_target) document.getElementById('dailyCalorieLimit').value = p.daily_calorie_target;
+          calculateBMI();
+        }
+      } catch (err) {
+        console.error("Error loading profile", err);
+      }
+    }
+
+    document.getElementById('healthProfileForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const token = localStorage.getItem('shd_token');
+      
+      const payload = {
+        age: parseInt(document.getElementById('age').value),
+        gender: document.getElementById('gender').value,
+        height_cm: parseFloat(document.getElementById('height').value),
+        current_weight_kg: parseFloat(document.getElementById('weight').value),
+        target_weight_kg: parseFloat(document.getElementById('targetWeight').value),
+        primary_goal: document.getElementById('goalSelect').value,
+        daily_calorie_target: parseInt(document.getElementById('dailyCalorieLimit').value)
+      };
+
+      try {
+        const res = await fetch('http://localhost:5000/api/profile', {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('Health profile and goals updated successfully!');
+        } else {
+          alert('Failed to update profile: ' + data.message);
+        }
+      } catch (err) {
+        alert('An error occurred while saving profile.');
+        console.error(err);
+      }
     });
 
-    document.addEventListener('DOMContentLoaded', calculateBMI);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProfile();
+        calculateBMI();
+    });
   </script>
 </body>
 </html>

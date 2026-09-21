@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body class="admin-page">
 
   <div class="dashboard-layout">
     
@@ -60,9 +60,12 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">User Account Management</h1>
+        <h1 class="text-xl font-bold admin-page-title">User Account Management</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">System Administrator</span>
+          <div class="admin-profile-copy">
+            <span class="font-bold text-sm block">System Administrator</span>
+            <span class="badge badge-danger">Super Admin</span>
+          </div>
           <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
       </header>
@@ -70,8 +73,29 @@
       <main class="dashboard-content">
         
         <div class="card">
-          <div class="card-header">
+          <div class="card-header flex flex-col md:flex-row justify-between gap-4 items-center">
             <h2 class="card-title">Registered User Directory</h2>
+            
+            <div class="flex items-center gap-3" style="flex-wrap: wrap;">
+              <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="userSearchInput" placeholder="Search by name, email, or ID...">
+              </div>
+
+              <select id="userStatusFilter" class="form-control" style="width: auto;">
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              <button class="btn btn-outline btn-sm" onclick="window.SHD_Admin.exportReportCSV('Users')">
+                Export CSV
+              </button>
+
+              <button class="btn btn-primary btn-sm" onclick="window.SHD_Admin.openModal('addUserModal')">
+                + Add User Account
+              </button>
+            </div>
           </div>
 
           <div class="table-container">
@@ -84,11 +108,11 @@
                   <th>Height & Weight</th>
                   <th>Goal</th>
                   <th>Account Status</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="adminUsersTableBody">
-                <!-- Dynamic Content -->
+                <!-- Dynamic Content rendered by admin.js -->
               </tbody>
             </table>
           </div>
@@ -98,32 +122,154 @@
     </div>
   </div>
 
+  <!-- Add User Modal -->
+  <div class="modal-backdrop" id="addUserModal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Create New User Account</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('addUserModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+
+      <form id="addUserForm">
+        <div class="form-group">
+          <label class="form-label" for="addUserName">Full Name</label>
+          <input type="text" id="addUserName" class="form-control" placeholder="e.g. Fatema Rifa" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="addUserEmail">Email Address</label>
+          <input type="email" id="addUserEmail" class="form-control" placeholder="user@example.com" required>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="addUserAge">Age</label>
+            <input type="number" id="addUserAge" class="form-control" placeholder="24" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addUserGender">Gender</label>
+            <select id="addUserGender" class="form-control">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-3 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="addUserHeight">Height (cm)</label>
+            <input type="number" id="addUserHeight" class="form-control" placeholder="165" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addUserWeight">Current Weight (kg)</label>
+            <input type="number" step="0.1" id="addUserWeight" class="form-control" placeholder="64.5" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addUserTargetWeight">Target Wt (kg)</label>
+            <input type="number" step="0.1" id="addUserTargetWeight" class="form-control" placeholder="60.0" required>
+          </div>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="addUserGoal">Primary Goal</label>
+            <select id="addUserGoal" class="form-control">
+              <option value="Weight Loss & Healthy Living">Weight Loss & Healthy Living</option>
+              <option value="Muscle Building">Muscle Building</option>
+              <option value="Diabetic Care">Diabetic Care</option>
+              <option value="Keto Maintenance">Keto Maintenance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addUserCalorieLimit">Daily Calorie Target</label>
+            <input type="number" id="addUserCalorieLimit" class="form-control" placeholder="2000" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 16px;">
+          Create User Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal-backdrop" id="editUserModal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Edit User Account</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('editUserModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+
+      <form id="editUserForm">
+        <input type="hidden" id="editUserId">
+
+        <div class="form-group">
+          <label class="form-label" for="editUserName">Full Name</label>
+          <input type="text" id="editUserName" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="editUserEmail">Email Address</label>
+          <input type="email" id="editUserEmail" class="form-control" required>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="editUserAge">Age</label>
+            <input type="number" id="editUserAge" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editUserGender">Gender</label>
+            <select id="editUserGender" class="form-control">
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-3 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="editUserHeight">Height (cm)</label>
+            <input type="number" id="editUserHeight" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editUserWeight">Current Wt (kg)</label>
+            <input type="number" step="0.1" id="editUserWeight" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editUserTargetWeight">Target Wt (kg)</label>
+            <input type="number" step="0.1" id="editUserTargetWeight" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="editUserGoal">Primary Goal</label>
+            <select id="editUserGoal" class="form-control">
+              <option value="Weight Loss & Healthy Living">Weight Loss & Healthy Living</option>
+              <option value="Muscle Building">Muscle Building</option>
+              <option value="Diabetic Care">Diabetic Care</option>
+              <option value="Keto Maintenance">Keto Maintenance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editUserCalorieLimit">Daily Calorie Target</label>
+            <input type="number" id="editUserCalorieLimit" class="form-control" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 16px;">
+          Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderAdminUsers() {
-      const users = SHD_Data.getUsers();
-      const tbody = document.getElementById('adminUsersTableBody');
-
-      tbody.innerHTML = users.map((u, idx) => `
-        <tr>
-          <td class="font-bold">#USR-00${idx + 1}</td>
-          <td>
-            <strong>${u.name}</strong>
-            <span class="text-xs text-muted block">${u.email}</span>
-          </td>
-          <td>${u.age} yrs / ${u.gender}</td>
-          <td>${u.height} cm | ${u.weight} kg</td>
-          <td><span class="badge badge-primary">${u.goal}</span></td>
-          <td><span class="badge badge-success">Active</span></td>
-          <td>
-            <button class="btn btn-outline btn-sm text-danger" onclick="alert('User status toggled')">Deactivate</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    document.addEventListener('DOMContentLoaded', renderAdminUsers);
-  </script>
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>

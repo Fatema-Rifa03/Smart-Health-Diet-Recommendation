@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 1-2 2v16a2 2 0 0 1 2 2h12a2 2 0 0 1 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -99,19 +103,19 @@
           
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Avg Daily Calorie Intake</span>
-            <div class="stat-value text-primary" style="margin-top: 8px;">1,680 kcal</div>
-            <span class="text-xs text-success font-semibold" style="margin-top: 4px; display: block;">16% under maximum limit</span>
+            <div class="stat-value text-primary" style="margin-top: 8px;" id="averageCalories">0 kcal</div>
+            <span class="text-xs text-success font-semibold" style="margin-top: 4px; display: block;" id="calorieComparison">No calorie logs yet</span>
           </div>
 
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Calorie Warnings Triggered</span>
-            <div class="stat-value text-warning" style="margin-top: 8px;">1</div>
-            <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Exceeded limit on 1 day</span>
+            <div class="stat-value text-warning" style="margin-top: 8px;" id="warningDays">0</div>
+            <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Days at warning threshold</span>
           </div>
 
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Hydration Consistency</span>
-            <div class="stat-value text-success" style="margin-top: 8px;">92%</div>
+            <div class="stat-value text-success" style="margin-top: 8px;" id="hydrationConsistency">0%</div>
             <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Met daily water goal</span>
           </div>
 
@@ -121,13 +125,22 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
+    async function loadReport() {
+      try {
+        const { report } = await SHD_UI.request('/user/reports/progress');
+        document.getElementById('averageCalories').textContent = `${report.averageCalories} kcal`;
+        document.getElementById('warningDays').textContent = report.warningDays;
+        document.getElementById('hydrationConsistency').textContent = `${report.hydrationConsistency}%`;
+        document.getElementById('calorieComparison').textContent = report.averageCalories <= report.targetCalories ? 'Within daily target' : 'Above daily target';
+      } catch (error) { document.getElementById('calorieComparison').textContent = error.message; }
+    }
+
     function exportUserPDF() {
-      alert('Generating user health progress report PDF...\nPrinting progress summary.');
       window.print();
     }
+    document.addEventListener('DOMContentLoaded', loadReport);
   </script>
 </body>
 </html>

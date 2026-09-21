@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -130,41 +134,42 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderUserChat() {
-      const chats = SHD_Data.getChats();
-      const stream = document.getElementById('userChatStream');
+    let activeConversationId = null;
 
-      stream.innerHTML = chats.map(c => `
-        <div class="message-bubble ${c.isDietitian ? 'message-received' : 'message-sent'}">
-          <span class="text-xs font-bold block" style="margin-bottom: 4px; opacity: 0.8;">${c.sender} • ${c.time}</span>
-          <p>${c.text}</p>
-        </div>
-      `).join('');
+    async function renderUserChat() {
+      const stream = document.getElementById('userChatStream');
+      try {
+        const conversations = await SHD_UI.request('/user/conversations');
+        activeConversationId = conversations.conversations?.[0]?.id || null;
+        if (!activeConversationId) {
+          stream.innerHTML = '<p class="text-muted" style="padding: 24px;">Accept a dietitian guidance request to start a conversation.</p>';
+          return;
+        }
+        const { messages = [] } = await SHD_UI.request(`/user/conversations/${activeConversationId}/messages`);
+        const currentUser = JSON.parse(localStorage.getItem('shd_current_user') || '{}');
+        stream.innerHTML = messages.map(message => `
+          <div class="message-bubble ${message.sender_id === currentUser.id ? 'message-sent' : 'message-received'}">
+            <span class="text-xs font-bold block" style="margin-bottom: 4px; opacity: 0.8;">${message.sender_name} • ${new Date(message.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <p>${message.message_text}</p>
+          </div>`).join('');
+        await SHD_UI.request(`/user/conversations/${activeConversationId}/read`, { method: 'POST' });
+      } catch (error) { stream.innerHTML = `<p class="text-danger" style="padding: 24px;">${error.message}</p>`; }
 
       stream.scrollTop = stream.scrollHeight;
     }
 
-    document.getElementById('userChatForm').addEventListener('submit', function (e) {
+    document.getElementById('userChatForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const input = document.getElementById('userChatInput');
       const text = input.value.trim();
-      if (!text) return;
-
-      SHD_Data.addChatMessage(text, false, 'Fatema Rifa');
+      if (!text || !activeConversationId) return;
+      try {
+        await SHD_UI.request(`/user/conversations/${activeConversationId}/messages`, { method: 'POST', body: JSON.stringify({ text }) });
+      } catch (error) { alert(error.message); return; }
       input.value = '';
       renderUserChat();
-
-      setTimeout(() => {
-        SHD_Data.addChatMessage(
-          'Thanks for your message! I reviewed your latest meal logs. Keep maintaining your daily water target of 2.5L!',
-          true,
-          'Dr. Sarah Jenkins'
-        );
-        renderUserChat();
-      }, 1200);
     });
 
     document.addEventListener('DOMContentLoaded', renderUserChat);

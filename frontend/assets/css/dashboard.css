@@ -63,6 +63,25 @@
   top: 0;
   z-index: 40;
 }
+.top-header > h1 { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-header .user-profile-menu { flex-shrink: 0; }
+
+.mobile-menu-button {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-main);
+}
+.mobile-menu-button span { width: 18px; height: 2px; border-radius: 2px; background: currentColor; }
+.sidebar-overlay { display: none; }
 
 .search-bar { position: relative; width: 100%; max-width: 360px; }
 .search-bar input { width: 100%; padding: 10px 16px 10px 42px; border-radius: var(--radius-full); border: 1px solid var(--border); background-color: var(--bg-page); font-size: 0.875rem; }
@@ -117,9 +136,38 @@
 .message-sent { background: var(--primary-gradient); color: var(--text-white); align-self: flex-end; border-bottom-right-radius: 4px; }
 .chat-input-area { padding: 16px 24px; background-color: var(--bg-surface); border-top: 1px solid var(--border); display: flex; gap: 12px; }
 
+/* Shared admin page rhythm and responsive behavior. */
+.admin-page .top-header { gap: 24px; }
+.admin-page-title { min-width: 0; line-height: 1.25; }
+.admin-profile-copy { text-align: right; white-space: nowrap; }
+.admin-page .dashboard-content { padding-top: 28px; }
+.admin-page .card { overflow: hidden; }
+.admin-page .card-header { gap: 16px; }
+.admin-page .table th, .admin-page .table td { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .admin-page .top-header { padding: 0 20px; }
+  .admin-page-title { font-size: 1.05rem; }
+  .admin-page .dashboard-content { padding: 24px 20px; }
+}
+
 @media (max-width: 768px) {
-  .sidebar { position: fixed; left: -260px; }
+  .sidebar { position: fixed; left: -280px; width: 280px; box-shadow: var(--shadow-xl); }
   .sidebar.mobile-open { left: 0; }
+  .sidebar-overlay.visible { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(15, 23, 42, 0.35); }
+  .mobile-menu-button { display: inline-flex; }
+  .top-header { gap: 12px; padding: 0 16px; }
+  .top-header > h1 { font-size: 1rem; }
+  .top-header .user-profile-menu { gap: 8px; }
+  .top-header .user-profile-menu > div { display: none; }
+  .top-header .user-avatar { width: 36px; height: 36px; }
+  .admin-page .top-header { min-height: 70px; height: auto; padding-top: 12px; padding-bottom: 12px; }
+  .admin-page .user-profile-menu { gap: 10px; }
+  .admin-page .admin-profile-copy { display: none; }
+  .admin-page .dashboard-content { padding: 20px 16px; }
+  .admin-page .card { padding: 20px; }
+  .admin-page .card-header { align-items: flex-start; flex-wrap: wrap; }
+  .admin-page .search-bar { max-width: none; }
   .dashboard-content { padding: 16px; }
   .chat-container { grid-template-columns: 1fr; }
 }

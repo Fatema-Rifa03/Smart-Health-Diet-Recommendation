@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body class="admin-page">
 
   <div class="dashboard-layout">
     
@@ -60,15 +60,29 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Approve Pending Dietitians</h1>
+        <h1 class="text-xl font-bold admin-page-title">Approve Pending Dietitians</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">System Administrator</span>
+          <div class="admin-profile-copy">
+            <span class="font-bold text-sm block">System Administrator</span>
+            <span class="badge badge-danger">Super Admin</span>
+          </div>
           <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
       <main class="dashboard-content">
         
+        <!-- Controls Header -->
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4" style="margin-bottom: 24px;">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="dietitianSearchInput" placeholder="Search dietitian by name, email, or specialty...">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="window.SHD_Admin.openModal('addDietitianModal')">
+            + Register New Dietitian
+          </button>
+        </div>
+
         <!-- Pending Approvals Card -->
         <div class="card" style="margin-bottom: 32px;">
           <div class="card-header">
@@ -88,7 +102,7 @@
                 </tr>
               </thead>
               <tbody id="pendingDietitiansTable">
-                <!-- Dynamic Content -->
+                <!-- Dynamic Content rendered by admin.js -->
               </tbody>
             </table>
           </div>
@@ -109,10 +123,11 @@
                   <th>Specialty</th>
                   <th>Rating</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="approvedDietitiansTable">
-                <!-- Dynamic Content -->
+                <!-- Dynamic Content rendered by admin.js -->
               </tbody>
             </table>
           </div>
@@ -122,51 +137,58 @@
     </div>
   </div>
 
+  <!-- Add Dietitian Modal -->
+  <div class="modal-backdrop" id="addDietitianModal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Register New Dietitian</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('addDietitianModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+
+      <form id="addDietitianForm">
+        <div class="form-group">
+          <label class="form-label" for="addDietitianName">Full Name & Title</label>
+          <input type="text" id="addDietitianName" class="form-control" placeholder="e.g. Dr. Emily Vance" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="addDietitianEmail">Email Address</label>
+          <input type="email" id="addDietitianEmail" class="form-control" placeholder="emily.v@smarthealth.com" required>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="addDietitianSpecialty">Specialty Area</label>
+            <input type="text" id="addDietitianSpecialty" class="form-control" placeholder="e.g. Diabetic & Renal Diets" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="addDietitianExperience">Experience (Years)</label>
+            <input type="number" id="addDietitianExperience" class="form-control" placeholder="5" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 16px;">
+          Submit Dietitian Profile
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dietitian Details Modal -->
+  <div class="modal-backdrop" id="dietitianDetailsModal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Dietitian Credentials Details</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('dietitianDetailsModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+      <div id="dietitianDetailsBody">
+        <!-- Rendered by admin.js -->
+      </div>
+    </div>
+  </div>
+
   <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderApprovalsPage() {
-      const dietitians = SHD_Data.getDietitians();
-
-      const pending = dietitians.filter(d => d.status === 'Pending');
-      const approved = dietitians.filter(d => d.status === 'Approved');
-
-      const pendingTbody = document.getElementById('pendingDietitiansTable');
-      if (pending.length === 0) {
-        pendingTbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No pending dietitian applications.</td></tr>`;
-      } else {
-        pendingTbody.innerHTML = pending.map(d => `
-          <tr>
-            <td class="font-bold">${d.name}<span class="text-xs text-muted block">${d.email}</span></td>
-            <td>${d.specialty}</td>
-            <td>${d.experience || '5 Years'}</td>
-            <td><span class="badge badge-warning">Pending Review</span></td>
-            <td>
-              <button class="btn btn-primary btn-sm" onclick="approveDietitian('${d.id}')">Approve Registration</button>
-            </td>
-          </tr>
-        `).join('');
-      }
-
-      const approvedTbody = document.getElementById('approvedDietitiansTable');
-      approvedTbody.innerHTML = approved.map(d => `
-        <tr>
-          <td class="font-bold">${d.name}</td>
-          <td class="text-muted">${d.email}</td>
-          <td>${d.specialty}</td>
-          <td><strong class="text-accent">★ ${d.rating}</strong></td>
-          <td><span class="badge badge-success">Approved</span></td>
-        </tr>
-      `).join('');
-    }
-
-    function approveDietitian(id) {
-      SHD_Data.approveDietitian(id);
-      renderApprovalsPage();
-      alert('Dietitian registration approved successfully!');
-    }
-
-    document.addEventListener('DOMContentLoaded', renderApprovalsPage);
-  </script>
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>

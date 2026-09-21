@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guidance Requests - Dietitian Portal</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-brand"><img src="../assets/images/logo.jpg" alt="Logo"><div><span class="sidebar-brand-text">Dietitian Portal</span><span class="text-xs text-muted block font-medium">& Clinical Care</span></div></div>
+        <nav class="sidebar-menu">
+          <a href="dashboard.html" class="sidebar-link"><span aria-hidden="true">▦</span>Dietitian Overview</a>
+          <a href="patients.html" class="sidebar-link"><span aria-hidden="true">♙</span>Patient Health Records</a>
+          <a href="guidance-requests.html" class="sidebar-link active"><span aria-hidden="true">♡</span>Guidance Requests</a>
+          <a href="meal-builder.html" class="sidebar-link"><span aria-hidden="true">▤</span>Create Meal Plans</a>
+          <a href="recipe-upload.html" class="sidebar-link"><span aria-hidden="true">▥</span>Upload Recipes & Guides</a>
+          <a href="chat.html" class="sidebar-link"><span aria-hidden="true">□</span>Patient Inbox</a>
+        </nav>
+      </div>
+      <div style="border-top: 1px solid var(--border); padding-top: 16px;"><a href="../auth/login.html" class="sidebar-link text-danger" onclick="localStorage.removeItem('shd_current_user')"><span aria-hidden="true">↪</span>Sign Out</a></div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="top-header"><h1 class="text-xl font-bold">Guidance Requests</h1><div class="user-profile-menu"><span class="font-bold text-sm">Dr. Sarah Jenkins</span><img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar"></div></header>
+      <main class="dashboard-content">
+        <div class="card"><div class="card-header"><div><h2 class="card-title">Patient requests</h2><p class="text-sm text-muted">Review requests from patients who want nutrition guidance.</p></div><span id="pendingCount" class="badge badge-warning"></span></div>
+          <div class="table-container"><table class="table"><thead><tr><th>Patient</th><th>Goal</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody id="requestsTable"></tbody></table></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/js/dummy-data.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script>
+    const dietitian = SHD_Data.getDietitians().find(item => item.id === 'd1') || SHD_Data.getDietitians()[0];
+
+    function renderRequests() {
+      const requests = SHD_Data.getGuidanceRequests().filter(request => request.dietitianId === dietitian.id);
+      const pending = requests.filter(request => request.status === 'Pending');
+      document.getElementById('pendingCount').textContent = `${pending.length} pending`;
+      document.getElementById('requestsTable').innerHTML = requests.length ? requests.map(request => `<tr>
+        <td class="font-bold">${request.userName}<span class="text-xs text-muted block">${request.userEmail}</span></td>
+        <td>${request.goal}</td>
+        <td>${new Date(request.createdAt).toLocaleDateString()}</td>
+        <td><span class="badge ${request.status === 'Accepted' ? 'badge-success' : request.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}">${request.status}</span></td>
+        <td>${request.status === 'Pending' ? `<div class="flex gap-2"><button class="btn btn-primary btn-sm" onclick="updateRequest('${request.id}', 'Accepted')">Accept</button><button class="btn btn-outline btn-sm text-danger" onclick="updateRequest('${request.id}', 'Rejected')">Reject</button></div>` : '<span class="text-muted text-sm">Completed</span>'}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted" style="padding: 24px;">No guidance requests yet.</td></tr>';
+    }
+
+    function updateRequest(id, status) {
+      SHD_Data.updateGuidanceRequestStatus(id, status);
+      renderRequests();
+    }
+
+    document.addEventListener('DOMContentLoaded', renderRequests);
+  </script>
+</body>
+</html>

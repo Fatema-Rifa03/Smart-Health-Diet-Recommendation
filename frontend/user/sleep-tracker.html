@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -79,7 +83,7 @@
         <h1 class="text-xl font-bold">Sleep Duration & Recovery Tracker</h1>
         <div class="user-profile-menu">
           <span class="font-bold text-sm">Fatema Rifa</span>
-          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
+          <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
@@ -115,16 +119,20 @@
           <form id="sleepForm">
             <div class="grid grid-3 gap-4">
               <div class="form-group">
+                <label class="form-label" for="sleepDate">Sleep Date</label>
+                <input type="date" id="sleepDate" class="form-control" required>
+              </div>
+              <div class="form-group">
                 <label class="form-label" for="bedtime">Bedtime</label>
-                <input type="text" id="bedtime" class="form-control" value="11:00 PM" required>
+                <input type="time" id="bedtime" class="form-control" value="23:00" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="wakeTime">Wake Time</label>
-                <input type="text" id="wakeTime" class="form-control" value="06:30 AM" required>
+                <input type="time" id="wakeTime" class="form-control" value="06:30" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="durationHours">Total Duration (Hours)</label>
-                <input type="number" id="durationHours" class="form-control" value="7.5" step="0.5" required>
+                <input type="number" id="durationHours" class="form-control" value="7.5" step="0.01" min="0" max="24" readonly required>
               </div>
             </div>
 
@@ -143,30 +151,127 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderSleepTracker() {
-      const sleep = SHD_Data.getSleepLog();
-      document.getElementById('sleepHoursVal').textContent = `${sleep.durationHours} hrs`;
-      document.getElementById('sleepQualityVal').textContent = `${sleep.qualityScore}/100`;
-      document.getElementById('sleepScheduleVal').textContent = `${sleep.bedtime || '11:00 PM'} – ${sleep.wakeTime || '06:30 AM'}`;
+    const API_URL = 'http://localhost:5000/api';
+    
+    function getToken() {
+      return localStorage.getItem('shd_token');
     }
 
-    document.getElementById('sleepForm').addEventListener('submit', function (e) {
+    function formatTime(value) {
+      if (!value) return 'Not logged';
+      const [hours, minutes] = value.split(':').map(Number);
+      const suffix = hours >= 12 ? 'PM' : 'AM';
+      const displayHour = hours % 12 || 12;
+      return `${String(displayHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${suffix}`;
+    }
+
+    function calculateDuration() {
+      const bedtime = document.getElementById('bedtime').value;
+      const wakeTime = document.getElementById('wakeTime').value;
+      const durationInput = document.getElementById('durationHours');
+      if (!bedtime || !wakeTime) {
+        durationInput.value = '';
+        return;
+      }
+
+      const [bedHour, bedMinute] = bedtime.split(':').map(Number);
+      const [wakeHour, wakeMinute] = wakeTime.split(':').map(Number);
+      const bedtimeMinutes = bedHour * 60 + bedMinute;
+      let wakeMinutes = wakeHour * 60 + wakeMinute;
+      if (wakeMinutes <= bedtimeMinutes) wakeMinutes += 24 * 60;
+      durationInput.value = ((wakeMinutes - bedtimeMinutes) / 60).toFixed(2);
+    }
+
+    function localDateTime(date, time) {
+      const [hours, minutes] = time.split(':').map(Number);
+      const value = new Date(date);
+      value.setHours(hours, minutes, 0, 0);
+      return value.toISOString();
+    }
+
+    async function renderSleepTracker() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/sleep`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        
+        if (data.success && data.sleep_logs && data.sleep_logs.length > 0) {
+          const sleep = data.sleep_logs[0]; // Latest
+          document.getElementById('sleepDate').value = sleep.date || sleep.sleep_date;
+          document.getElementById('sleepHoursVal').textContent = `${sleep.duration_hours} hrs`;
+          document.getElementById('sleepQualityVal').textContent = `${sleep.quality_score}/100`;
+          
+          let scheduleText = "";
+            if (sleep.bedtime && sleep.wake_time) {
+              const bedtime = new Date(sleep.bedtime);
+              const wakeTime = new Date(sleep.wake_time);
+              document.getElementById('bedtime').value = `${String(bedtime.getHours()).padStart(2, '0')}:${String(bedtime.getMinutes()).padStart(2, '0')}`;
+              document.getElementById('wakeTime').value = `${String(wakeTime.getHours()).padStart(2, '0')}:${String(wakeTime.getMinutes()).padStart(2, '0')}`;
+              document.getElementById('durationHours').value = Number(sleep.duration_hours).toFixed(2);
+              scheduleText = `${formatTime(document.getElementById('bedtime').value)} – ${formatTime(document.getElementById('wakeTime').value)}`;
+          } else {
+              scheduleText = "Not logged";
+          }
+          document.getElementById('sleepScheduleVal').textContent = scheduleText;
+        }
+      } catch (err) {
+        console.error("Error fetching sleep data:", err);
+      }
+    }
+
+    document.getElementById('sleepForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const sleep = {
-        userId: 'u1',
-        durationHours: parseFloat(document.getElementById('durationHours').value),
-        qualityScore: parseInt(document.getElementById('qualityScore').value),
-        bedtime: document.getElementById('bedtime').value,
-        wakeTime: document.getElementById('wakeTime').value
+      const token = getToken();
+      if (!token) return;
+
+      calculateDuration();
+      const durationHours = parseFloat(document.getElementById('durationHours').value);
+      const qualityScore = parseInt(document.getElementById('qualityScore').value);
+      
+      const dateStr = document.getElementById('sleepDate').value || new Date().toISOString().split('T')[0];
+      const bedTimeInput = document.getElementById('bedtime').value;
+      const wakeTimeInput = document.getElementById('wakeTime').value;
+      const bedtimeDate = new Date(`${dateStr}T${bedTimeInput}:00`);
+      const wakeDate = new Date(`${dateStr}T${wakeTimeInput}:00`);
+      if (wakeDate <= bedtimeDate) wakeDate.setDate(wakeDate.getDate() + 1);
+
+      const payload = {
+        date: dateStr,
+        duration_hours: durationHours,
+        quality_score: qualityScore,
+        bedtime: bedtimeDate.toISOString(),
+        wake_time: wakeDate.toISOString(),
+        notes: ""
       };
-      localStorage.setItem('shd_sleep_log', JSON.stringify(sleep));
-      renderSleepTracker();
-      alert('Sleep log saved successfully!');
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/sleep`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token 
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to save sleep log');
+        await renderSleepTracker();
+        alert('Sleep log saved successfully.');
+      } catch (err) {
+        console.error("Error logging sleep:", err);
+        alert(`Failed to save sleep log: ${err.message}`);
+      }
     });
 
+    document.getElementById('bedtime').addEventListener('input', calculateDuration);
+    document.getElementById('wakeTime').addEventListener('input', calculateDuration);
+    document.getElementById('sleepDate').value = new Date().toISOString().split('T')[0];
+    calculateDuration();
     document.addEventListener('DOMContentLoaded', renderSleepTracker);
   </script>
 </body>

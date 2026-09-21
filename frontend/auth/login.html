@@ -152,22 +152,50 @@
       });
     }
 
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      
       const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
 
-      let name = 'Fatema Rifa';
-      if (selectedRole === 'dietitian') name = 'Dr. Sarah Jenkins';
-      if (selectedRole === 'admin') name = 'System Administrator';
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
 
-      SHD_Data.setCurrentUser({ name: name, email: email, role: selectedRole });
+        const data = await response.json();
 
-      if (selectedRole === 'user') {
-        window.location.href = '../user/dashboard.html';
-      } else if (selectedRole === 'dietitian') {
-        window.location.href = '../dietitian/dashboard.html';
-      } else if (selectedRole === 'admin') {
-        window.location.href = '../admin/dashboard.html';
+        if (response.ok && data.success) {
+          // Store token in cookies and local storage (fallback)
+          document.cookie = "shd_token=" + data.session.access_token + "; path=/; max-age=604800"; // 7 days
+          localStorage.setItem('shd_token', data.session.access_token);
+          
+          // Map backend 'full_name' to 'name' for frontend compatibility
+          const userData = { ...data.user, name: data.user.full_name };
+          localStorage.setItem('shd_current_user', JSON.stringify(userData));
+          
+          // Use the role from the backend
+          const role = data.user.role;
+          
+          if (role === 'user') {
+            window.location.href = '../user/dashboard.html';
+          } else if (role === 'dietitian') {
+            window.location.href = '../dietitian/dashboard.html';
+          } else if (role === 'admin') {
+            window.location.href = '../admin/dashboard.html';
+          } else {
+            alert('Unknown role');
+          }
+        } else {
+          alert('Login failed: ' + (data.message || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error during login:', error);
+        alert('An error occurred during login. Please ensure the backend server is running.');
       }
     });
   </script>

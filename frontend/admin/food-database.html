@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body class="admin-page">
 
   <div class="dashboard-layout">
     
@@ -60,19 +60,63 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Food Calorie Database Catalog</h1>
+        <h1 class="text-xl font-bold admin-page-title">Food Calorie Database Catalog</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">System Administrator</span>
+          <div class="admin-profile-copy">
+            <span class="font-bold text-sm block">System Administrator</span>
+            <span class="badge badge-danger">Super Admin</span>
+          </div>
           <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
       <main class="dashboard-content">
         
+        <!-- Metrics Header -->
+        <div class="grid grid-2 gap-6" style="margin-bottom: 24px;">
+          <div class="card flex justify-between items-center">
+            <div>
+              <span class="text-xs text-muted block uppercase font-bold">Total Catalog Items</span>
+              <div class="text-2xl font-bold text-primary" id="catalogTotalCount">8</div>
+            </div>
+            <span class="badge badge-primary">Calorie Database</span>
+          </div>
+
+          <div class="card flex justify-between items-center">
+            <div>
+              <span class="text-xs text-muted block uppercase font-bold">Average Calories / Item</span>
+              <div class="text-2xl font-bold text-success" id="catalogAvgCalories">390 kcal</div>
+            </div>
+            <span class="badge badge-success">Balanced Nutrients</span>
+          </div>
+        </div>
+
         <div class="card">
-          <div class="card-header">
+          <div class="card-header flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 class="card-title">Master Food Items Catalog</h2>
-            <button class="btn btn-primary btn-sm" onclick="SHD_UI.openModal('foodModal')">+ Add Food Item</button>
+
+            <div class="flex items-center gap-3" style="flex-wrap: wrap;">
+              <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="foodSearchInput" placeholder="Search food by name or category...">
+              </div>
+
+              <select id="foodCategoryFilter" class="form-control" style="width: auto;">
+                <option value="All">All Categories</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Dinner">Dinner</option>
+                <option value="Snacks">Snacks</option>
+              </select>
+
+              <button class="btn btn-outline btn-sm" onclick="window.SHD_Admin.exportReportCSV('FoodCatalog')">
+                Export Catalog CSV
+              </button>
+
+              <button class="btn btn-primary btn-sm" onclick="window.SHD_Admin.openModal('foodModal')">
+                + Add Food Item
+              </button>
+            </div>
           </div>
 
           <div class="table-container">
@@ -84,11 +128,11 @@
                   <th>Calories (kcal)</th>
                   <th>Macronutrients (P / C / F)</th>
                   <th>Standard Portion</th>
-                  <th>Action</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="foodCatalogTableBody">
-                <!-- Dynamic Content -->
+                <!-- Dynamic Content rendered by admin.js -->
               </tbody>
             </table>
           </div>
@@ -103,7 +147,7 @@
     <div class="modal-content">
       <div class="flex justify-between items-center" style="margin-bottom: 20px;">
         <h3 class="text-lg font-bold">Add New Food Item to Catalog</h3>
-        <button class="text-muted" onclick="SHD_UI.closeModal('foodModal')" style="font-size: 1.5rem;">&times;</button>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('foodModal')" style="font-size: 1.5rem;">&times;</button>
       </div>
 
       <form id="addFoodItemForm">
@@ -128,6 +172,21 @@
           </div>
         </div>
 
+        <div class="grid grid-3 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="foodProtein">Protein (g)</label>
+            <input type="number" id="foodProtein" class="form-control" placeholder="25" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="foodCarbs">Carbs (g)</label>
+            <input type="number" id="foodCarbs" class="form-control" placeholder="30" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="foodFat">Fat (g)</label>
+            <input type="number" id="foodFat" class="form-control" placeholder="8" required>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="foodPortion">Standard Portion Size</label>
           <input type="text" id="foodPortion" class="form-control" placeholder="e.g. 1 plate (200g)" required>
@@ -140,53 +199,67 @@
     </div>
   </div>
 
+  <!-- Edit Food Modal -->
+  <div class="modal-backdrop" id="editFoodModal">
+    <div class="modal-content">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Edit Food Item</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('editFoodModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+
+      <form id="editFoodItemForm">
+        <input type="hidden" id="editFoodId">
+
+        <div class="form-group">
+          <label class="form-label" for="editFoodName">Food Name</label>
+          <input type="text" id="editFoodName" class="form-control" required>
+        </div>
+
+        <div class="grid grid-2 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="editFoodCategory">Category</label>
+            <select id="editFoodCategory" class="form-control">
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snacks">Snacks</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editFoodCalories">Calories (kcal)</label>
+            <input type="number" id="editFoodCalories" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="grid grid-3 gap-4">
+          <div class="form-group">
+            <label class="form-label" for="editFoodProtein">Protein (g)</label>
+            <input type="number" id="editFoodProtein" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editFoodCarbs">Carbs (g)</label>
+            <input type="number" id="editFoodCarbs" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editFoodFat">Fat (g)</label>
+            <input type="number" id="editFoodFat" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="editFoodPortion">Standard Portion Size</label>
+          <input type="text" id="editFoodPortion" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 16px;">
+          Update Food Item
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderFoodCatalog() {
-      const foods = SHD_Data.getFoodDatabase();
-      const tbody = document.getElementById('foodCatalogTableBody');
-
-      tbody.innerHTML = foods.map((f, idx) => `
-        <tr>
-          <td class="font-bold">${f.name}</td>
-          <td><span class="badge badge-primary">${f.category}</span></td>
-          <td class="font-bold text-primary">${f.calories} kcal</td>
-          <td class="text-xs text-muted">P: ${f.protein}g | C: ${f.carbs}g | F: ${f.fat}g</td>
-          <td class="text-sm">${f.portion}</td>
-          <td>
-            <button class="btn btn-outline btn-sm text-danger" onclick="deleteFood(${idx})">Delete</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    document.getElementById('addFoodItemForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const foods = SHD_Data.getFoodDatabase();
-      foods.push({
-        id: 'f_' + Date.now(),
-        name: document.getElementById('foodName').value,
-        category: document.getElementById('foodCategory').value,
-        calories: parseInt(document.getElementById('foodCalories').value),
-        protein: 15, carbs: 25, fat: 8,
-        portion: document.getElementById('foodPortion').value
-      });
-
-      localStorage.setItem('shd_food_database', JSON.stringify(foods));
-      SHD_UI.closeModal('foodModal');
-      this.reset();
-      renderFoodCatalog();
-    });
-
-    function deleteFood(index) {
-      const foods = SHD_Data.getFoodDatabase();
-      foods.splice(index, 1);
-      localStorage.setItem('shd_food_database', JSON.stringify(foods));
-      renderFoodCatalog();
-    }
-
-    document.addEventListener('DOMContentLoaded', renderFoodCatalog);
-  </script>
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>

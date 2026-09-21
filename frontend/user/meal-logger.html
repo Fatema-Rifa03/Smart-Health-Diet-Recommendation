@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -191,20 +195,40 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
     let foodDb = [];
+    const API_URL = 'http://localhost:5000/api';
+    
+    function getToken() {
+      return localStorage.getItem('shd_token');
+    }
 
-    function initMealLogger() {
-      foodDb = SHD_Data.getFoodDatabase();
+    async function initMealLogger() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/foods`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        
+        if (data.success) {
+          foodDb = data.foods;
+        }
+      } catch (err) {
+        console.error("Failed to load foods", err);
+      }
+
       const foodSelect = document.getElementById('foodSelect');
-
-      foodSelect.innerHTML = foodDb.map(f => `
-        <option value="${f.id}" data-calories="${f.calories}">
-          ${f.name} (${f.calories} kcal / ${f.portion})
+      let optionsHtml = `<option value="">-- Select Food --</option>`;
+      optionsHtml += foodDb.map(f => `
+        <option value="${f.id}" data-calories="${f.calories}" data-name="${f.name}">
+          ${f.name} (${f.calories} kcal / ${f.portion_description || 'Serving'})
         </option>
       `).join('');
+      optionsHtml += `<option value="custom">Other (Custom Entry)</option>`;
+      
+      foodSelect.innerHTML = optionsHtml;
 
       autoCalculateCalories();
       renderMealLogs();
@@ -212,85 +236,143 @@
 
     function autoCalculateCalories() {
       const foodSelect = document.getElementById('foodSelect');
+      const customContainer = document.getElementById('customFoodContainer');
+      const calcCaloriesInput = document.getElementById('calculatedCalories');
+      
       const selectedOption = foodSelect.options[foodSelect.selectedIndex];
-      if (!selectedOption) return;
-
-      const baseCal = parseFloat(selectedOption.getAttribute('data-calories') || 0);
-      const servings = parseFloat(document.getElementById('servings').value || 1);
-      document.getElementById('calculatedCalories').value = Math.round(baseCal * servings);
-    }
-
-    function renderMealLogs() {
-      const meals = SHD_Data.getLoggedMeals();
-      const total = meals.reduce((sum, m) => sum + parseInt(m.calories || 0), 0);
-
-      document.getElementById('totalCaloriesDisplay').textContent = `${total.toLocaleString()} kcal`;
-
-      const statusBadge = document.getElementById('calorieStatusBadge');
-      if (total >= 2000) {
-        statusBadge.className = 'badge badge-danger';
-        statusBadge.textContent = 'Calorie Limit Exceeded!';
-      } else if (total >= 1600) {
-        statusBadge.className = 'badge badge-warning';
-        statusBadge.textContent = 'Approaching Limit';
-      } else {
-        statusBadge.className = 'badge badge-success';
-        statusBadge.textContent = 'Within Healthy Limit';
+      if (!selectedOption || selectedOption.value === "") {
+        calcCaloriesInput.value = "";
+        return;
       }
 
-      const quickList = document.getElementById('quickFoodList');
-      quickList.innerHTML = foodDb.slice(0, 5).map(f => `
-        <div class="flex justify-between items-center" style="padding: 10px; background: var(--bg-page); border-radius: var(--radius-md); font-size: 0.8rem;">
-          <div>
-            <strong style="display: block;">${f.name}</strong>
-            <span class="text-xs text-muted">${f.portion}</span>
+      if (selectedOption.value === "custom") {
+        if(customContainer) customContainer.style.display = 'block';
+        calcCaloriesInput.readOnly = false;
+        calcCaloriesInput.style.backgroundColor = '';
+        calcCaloriesInput.value = ""; // Let user enter
+      } else {
+        if(customContainer) customContainer.style.display = 'none';
+        calcCaloriesInput.readOnly = true;
+        calcCaloriesInput.style.backgroundColor = 'var(--bg-page)';
+        const baseCal = parseFloat(selectedOption.getAttribute('data-calories') || 0);
+        const servings = parseFloat(document.getElementById('servings').value || 1);
+        calcCaloriesInput.value = Math.round(baseCal * servings);
+      }
+    }
+
+    async function renderMealLogs() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/meals`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        
+        if (!data.success) return;
+        const meals = data.meals;
+
+        const total = meals.reduce((sum, m) => sum + parseInt(m.calories || 0), 0);
+        document.getElementById('totalCaloriesDisplay').textContent = `${total.toLocaleString()} kcal`;
+
+        const statusBadge = document.getElementById('calorieStatusBadge');
+        if (total >= 2000) {
+          statusBadge.className = 'badge badge-danger';
+          statusBadge.textContent = 'Calorie Limit Exceeded!';
+        } else if (total >= 1600) {
+          statusBadge.className = 'badge badge-warning';
+          statusBadge.textContent = 'Approaching Limit';
+        } else {
+          statusBadge.className = 'badge badge-success';
+          statusBadge.textContent = 'Within Healthy Limit';
+        }
+
+        const quickList = document.getElementById('quickFoodList');
+        quickList.innerHTML = foodDb.slice(0, 5).map(f => `
+          <div class="flex justify-between items-center" style="padding: 10px; background: var(--bg-page); border-radius: var(--radius-md); font-size: 0.8rem;">
+            <div>
+              <strong style="display: block;">${f.name}</strong>
+              <span class="text-xs text-muted">${f.portion_description || 'Serving'}</span>
+            </div>
+            <span class="badge badge-primary">${f.calories} kcal</span>
           </div>
-          <span class="badge badge-primary">${f.calories} kcal</span>
-        </div>
-      `).join('');
-
-      const tbody = document.getElementById('mealsListTable');
-      if (meals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No meals logged for today yet.</td></tr>`;
-      } else {
-        tbody.innerHTML = meals.map((m, idx) => `
-          <tr>
-            <td><span class="badge badge-primary">${m.category}</span></td>
-            <td class="font-bold">${m.name}</td>
-            <td class="font-bold text-primary">${m.calories} kcal</td>
-            <td class="text-muted text-xs">${m.loggedAt || 'Today'}</td>
-            <td>
-              <button class="btn btn-outline btn-sm text-danger" onclick="deleteMeal(${idx})">Remove</button>
-            </td>
-          </tr>
         `).join('');
+
+        const tbody = document.getElementById('mealsListTable');
+        if (meals.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No meals logged for today yet.</td></tr>`;
+        } else {
+          tbody.innerHTML = meals.map(m => `
+            <tr>
+              <td><span class="badge badge-primary">${m.category}</span></td>
+              <td class="font-bold">${m.meal_name}</td>
+              <td class="font-bold text-primary">${m.calories} kcal</td>
+              <td class="text-muted text-xs">${new Date(m.logged_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+              <td><span class="badge badge-success">Logged</span></td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
       }
     }
 
-    document.getElementById('mealForm').addEventListener('submit', function (e) {
+    document.getElementById('mealForm').addEventListener('submit', async function (e) {
       e.preventDefault();
+      const token = getToken();
+      if (!token) return;
+
       const foodSelect = document.getElementById('foodSelect');
-      const foodName = foodSelect.options[foodSelect.selectedIndex].text.split('(')[0].trim();
+      const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+      if (!selectedOption || selectedOption.value === "") {
+          alert("Please select a food item");
+          return;
+      }
+
       const category = document.getElementById('categorySelect').value;
       const calories = document.getElementById('calculatedCalories').value;
+      
+      let mealName = "";
+      let foodItemId = null;
 
-      SHD_Data.addMeal({ category: category, name: foodName, calories: parseInt(calories) });
-      renderMealLogs();
-      alert(`Logged ${foodName} (${calories} kcal) successfully!`);
+      if (selectedOption.value === "custom") {
+          mealName = prompt("Enter custom food name:");
+          if (!mealName) return;
+      } else {
+          mealName = selectedOption.getAttribute('data-name');
+          foodItemId = selectedOption.value;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/meals`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ category, meal_name: mealName, calories: parseInt(calories), food_item_id: foodItemId })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          alert(`Logged ${mealName} (${calories} kcal) successfully!`);
+          renderMealLogs();
+          document.getElementById('mealForm').reset();
+          autoCalculateCalories();
+        } else {
+          alert("Failed to log meal: " + data.message);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     });
 
-    function deleteMeal(index) {
-      const meals = SHD_Data.getLoggedMeals();
-      meals.splice(index, 1);
-      localStorage.setItem('shd_logged_meals', JSON.stringify(meals));
-      renderMealLogs();
-    }
-
-    function clearTodayMeals() {
-      if (confirm('Clear all logged meals for today?')) {
-        localStorage.setItem('shd_logged_meals', JSON.stringify([]));
+    async function clearTodayMeals() {
+      if (!confirm('Clear all meals logged today?')) return;
+      try {
+        const res = await fetch(`${API_URL}/tracking/meals/today`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
+        if (!res.ok) throw new Error('Unable to clear today\'s meals');
         renderMealLogs();
-      }
+      } catch (err) { alert(err.message); }
     }
 
     document.addEventListener('DOMContentLoaded', initMealLogger);

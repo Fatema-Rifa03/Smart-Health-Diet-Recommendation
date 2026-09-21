@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body class="admin-page">
 
   <div class="dashboard-layout">
     
@@ -60,33 +60,82 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Generate System PDF Reports</h1>
+        <h1 class="text-xl font-bold admin-page-title">Generate System PDF Reports & Data Exports</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">System Administrator</span>
+          <div class="admin-profile-copy">
+            <span class="font-bold text-sm block">System Administrator</span>
+            <span class="badge badge-danger">Super Admin</span>
+          </div>
           <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
       <main class="dashboard-content">
         
-        <div class="grid grid-3 gap-6">
+        <div class="grid grid-2 gap-6" style="margin-bottom: 32px;">
           
-          <div class="card text-center">
-            <h3 class="font-bold text-lg" style="margin-bottom: 8px;">Weekly Calorie Summary</h3>
-            <p class="text-xs text-muted" style="margin-bottom: 20px;">System-wide daily calorie consumption analytics.</p>
-            <button class="btn btn-primary btn-full" onclick="printReport('Weekly Calorie Report')">Download PDF Report</button>
+          <div class="card">
+            <div class="flex items-center justify-between" style="margin-bottom: 12px;">
+              <h3 class="font-bold text-lg">Weekly Calorie Summary Report</h3>
+              <span class="badge badge-primary">Analytics</span>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom: 24px;">System-wide daily calorie consumption analytics, logged meals breakdown, and intake adherence ratios.</p>
+            <div class="flex gap-3">
+              <button class="btn btn-primary flex-1" onclick="window.SHD_Admin.generateReportPreview('Weekly Calorie Summary')">
+                Preview & Print PDF
+              </button>
+              <button class="btn btn-outline" onclick="window.SHD_Admin.exportReportCSV('WeeklyCalorie')">
+                Export CSV
+              </button>
+            </div>
           </div>
 
-          <div class="card text-center">
-            <h3 class="font-bold text-lg" style="margin-bottom: 8px;">User Weight Loss Trends</h3>
-            <p class="text-xs text-muted" style="margin-bottom: 20px;">Aggregated weight reduction progress across patients.</p>
-            <button class="btn btn-primary btn-full" onclick="printReport('User Weight Loss Trends')">Download PDF Report</button>
+          <div class="card">
+            <div class="flex items-center justify-between" style="margin-bottom: 12px;">
+              <h3 class="font-bold text-lg">User Weight Loss Progress Trends</h3>
+              <span class="badge badge-success">Patient Health</span>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom: 24px;">Aggregated weight reduction progress, target vs actual body weight changes across patient accounts.</p>
+            <div class="flex gap-3">
+              <button class="btn btn-primary flex-1" onclick="window.SHD_Admin.generateReportPreview('User Weight Loss Trends')">
+                Preview & Print PDF
+              </button>
+              <button class="btn btn-outline" onclick="window.SHD_Admin.exportReportCSV('Users')">
+                Export CSV
+              </button>
+            </div>
           </div>
 
-          <div class="card text-center">
-            <h3 class="font-bold text-lg" style="margin-bottom: 8px;">Dietitian Clinical Activity</h3>
-            <p class="text-xs text-muted" style="margin-bottom: 20px;">Meal plan assignments and recipe upload stats.</p>
-            <button class="btn btn-primary btn-full" onclick="printReport('Dietitian Activity Report')">Download PDF Report</button>
+          <div class="card">
+            <div class="flex items-center justify-between" style="margin-bottom: 12px;">
+              <h3 class="font-bold text-lg">Dietitian Clinical Engagement</h3>
+              <span class="badge badge-warning">Specialists</span>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom: 24px;">Specialist registration status, patient assignments, active chat response rates, and meal plan output statistics.</p>
+            <div class="flex gap-3">
+              <button class="btn btn-primary flex-1" onclick="window.SHD_Admin.generateReportPreview('Dietitian Activity Report')">
+                Preview & Print PDF
+              </button>
+              <button class="btn btn-outline" onclick="window.SHD_Admin.exportReportCSV('Dietitians')">
+                Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="flex items-center justify-between" style="margin-bottom: 12px;">
+              <h3 class="font-bold text-lg">Master Food Database Catalog</h3>
+              <span class="badge badge-primary">Database</span>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom: 24px;">Complete list of food items, standard portion sizes, calorie counts, and macronutrient breakdowns.</p>
+            <div class="flex gap-3">
+              <button class="btn btn-primary flex-1" onclick="window.SHD_Admin.generateReportPreview('Food Database Catalog')">
+                Preview & Print PDF
+              </button>
+              <button class="btn btn-outline" onclick="window.SHD_Admin.exportReportCSV('FoodCatalog')">
+                Export CSV
+              </button>
+            </div>
           </div>
 
         </div>
@@ -95,13 +144,29 @@
     </div>
   </div>
 
+  <!-- Report Preview Modal -->
+  <div class="modal-backdrop" id="reportPreviewModal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold" id="reportModalTitle">System Report Preview</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('reportPreviewModal')" style="font-size: 1.5rem;">&times;</button>
+      </div>
+
+      <div id="reportPreviewContent" style="max-height: 500px; overflow-y: auto; margin-bottom: 20px;">
+        <!-- Dynamic Report Content -->
+      </div>
+
+      <div class="flex justify-between items-center" style="border-top: 1px solid var(--border); padding-top: 16px;">
+        <button class="btn btn-outline" onclick="window.SHD_Admin.closeModal('reportPreviewModal')">Close</button>
+        <button class="btn btn-primary" onclick="window.print()">
+          Print / Save as PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function printReport(title) {
-      alert(`Generating PDF for "${title}"...\nPrinting standard summary report.`);
-      window.print();
-    }
-  </script>
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>

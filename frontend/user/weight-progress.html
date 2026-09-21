@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -89,20 +93,20 @@
           
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Starting Weight</span>
-            <div class="stat-value" style="margin-top: 8px;">67.5 kg</div>
-            <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Log date: 1 MAY</span>
+            <div class="stat-value" style="margin-top: 8px;" id="startingWeightVal">-- kg</div>
+            <span class="text-xs text-muted" style="margin-top: 4px; display: block;" id="startingWeightDate">No history logged</span>
           </div>
 
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Current Weight</span>
-            <div class="stat-value text-primary" style="margin-top: 8px;" id="currentWeightVal">64.5 kg</div>
-            <span class="text-xs text-success font-semibold" style="margin-top: 4px; display: block;">↓ 3.0 kg total weight lost!</span>
+            <div class="stat-value text-primary" style="margin-top: 8px;" id="currentWeightVal">-- kg</div>
+            <span id="weightChangeText" class="text-xs text-success font-semibold" style="margin-top: 4px; display: block;">No history logged</span>
           </div>
 
           <div class="stat-card">
             <span class="stat-label uppercase font-bold text-xs">Target Weight</span>
-            <div class="stat-value text-accent" style="margin-top: 8px;">60.0 kg</div>
-            <span class="text-xs text-muted" style="margin-top: 4px; display: block;">4.5 kg remaining to goal</span>
+            <div class="stat-value text-accent" style="margin-top: 8px;" id="targetWeightVal">-- kg</div>
+            <span id="weightRemainingText" class="text-xs text-muted" style="margin-top: 4px; display: block;">Set a target in your profile</span>
           </div>
 
         </div>
@@ -121,33 +125,25 @@
               <div style="width: 100%; border-top: 1px dashed var(--border);"></div>
               <div style="width: 100%; border-top: 1px dashed var(--border);"></div>
               
-              <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); transform: translateY(-35px);"></div>
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); transform: translateY(-25px);"></div>
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); transform: translateY(-15px);"></div>
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); transform: translateY(0px);"></div>
-                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); transform: translateY(15px);"></div>
-                <div style="width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; transform: translateY(28px); box-shadow: var(--shadow-md);"></div>
+              <div id="weightChartPoints" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 24px;">
+                <span class="text-xs text-muted">Loading history...</span>
               </div>
             </div>
 
-            <div class="flex justify-between text-xs text-muted font-bold" style="padding-top: 12px;">
-              <span>1 MAY (67.5 kg)</span>
-              <span>7 MAY</span>
-              <span>14 MAY</span>
-              <span>21 MAY</span>
-              <span>28 MAY</span>
-              <span class="text-primary">TODAY (64.5 kg)</span>
-            </div>
+            <div id="weightChartLabels" class="flex justify-between text-xs text-muted font-bold" style="padding-top: 12px;"></div>
           </div>
 
           <!-- Log Weight Form (1 Col) -->
           <div class="card">
             <div class="card-header">
-              <h2 class="card-title">Log Today's Weight</h2>
+              <h2 class="card-title">Log Weight Update</h2>
             </div>
 
             <form id="weightLogForm">
+              <div class="form-group">
+                <label class="form-label" for="weightUpdateDate">Weight Update Date</label>
+                <input type="date" id="weightUpdateDate" class="form-control" required>
+              </div>
               <div class="form-group">
                 <label class="form-label" for="newWeightInput">New Weight Entry (kg)</label>
                 <input type="number" id="newWeightInput" class="form-control" placeholder="e.g. 64.2" step="0.1" required>
@@ -156,6 +152,7 @@
               <button type="submit" class="btn btn-primary btn-full">
                 Log Entry
               </button>
+              <p id="weightFormStatus" class="text-sm text-muted" role="status" aria-live="polite" style="margin-top: 12px;"></p>
             </form>
           </div>
 
@@ -165,26 +162,136 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderWeightProgress() {
-      const history = SHD_Data.getWeightHistory();
-      const latest = history[history.length - 1];
-      if (latest) {
-        document.getElementById('currentWeightVal').textContent = `${latest.weight} kg`;
+    const API_URL = 'http://localhost:5000/api';
+    
+    function getToken() {
+      return localStorage.getItem('shd_token');
+    }
+
+    function setWeightStatus(message, isError = false) {
+      const status = document.getElementById('weightFormStatus');
+      status.textContent = message;
+      status.className = isError ? 'text-sm text-danger' : 'text-sm text-muted';
+    }
+
+    function formatWeightDate(value) {
+      if (!value) return 'No date';
+      return new Date(`${value}T00:00:00`).toLocaleDateString([], {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    async function renderWeightProgress() {
+      const token = getToken();
+      if (!token) {
+        setWeightStatus('Your session has expired. Please sign in again.', true);
+        return;
+      }
+
+      try {
+        // Fetch target weight from profile
+        const profileRes = await fetch(`${API_URL}/profile`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const profileData = await profileRes.json();
+        if (!profileRes.ok || !profileData.success) throw new Error(profileData.message || 'Unable to load health profile');
+        let targetWeight = 60.0;
+        
+        if (profileData.success && profileData.profile) {
+            targetWeight = parseFloat(profileData.profile.target_weight_kg) || 60.0;
+            // Update target weight display
+            document.getElementById('targetWeightVal').textContent = `${targetWeight.toFixed(1)} kg`;
+        }
+
+        // Fetch weight logs
+        const weightRes = await fetch(`${API_URL}/tracking/weight`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const weightData = await weightRes.json();
+        if (!weightRes.ok || !weightData.success) throw new Error(weightData.message || 'Unable to load weight history');
+
+        if (weightData.success && weightData.weight_logs && weightData.weight_logs.length > 0) {
+          const logs = weightData.weight_logs; // Sorted desc
+          const latest = logs[0];
+          const first = logs[logs.length - 1]; // oldest in this query (up to 30)
+          
+          const currentWeight = parseFloat(latest.weight_kg);
+          document.getElementById('currentWeightVal').textContent = `${currentWeight.toFixed(1)} kg`;
+          
+          // Update starting weight display
+          const profileStartingWeight = Number(profileData.profile?.starting_weight_kg || profileData.profile?.current_weight_kg);
+          const startingWeight = Number.isFinite(profileStartingWeight) && profileStartingWeight > 0
+            ? profileStartingWeight
+            : Number(first.weight_kg);
+          document.getElementById('startingWeightVal').textContent = `${startingWeight.toFixed(1)} kg`;
+          document.getElementById('startingWeightDate').textContent = Number.isFinite(profileStartingWeight) && profileStartingWeight > 0
+            ? 'From health profile'
+            : `Log date: ${formatWeightDate(first.date)}`;
+          
+          // Update diffs
+          const remaining = (currentWeight - targetWeight).toFixed(1);
+          const remainingText = remaining > 0 ? `${remaining} kg remaining to goal` : `Goal achieved!`;
+          document.getElementById('weightRemainingText').textContent = remainingText;
+
+          const lost = (startingWeight - currentWeight).toFixed(1);
+          const lostText = lost > 0 ? `↓ ${lost} kg total weight lost!` : (lost < 0 ? `↑ ${Math.abs(lost)} kg gained` : "No change");
+          document.getElementById('weightChangeText').textContent = lostText;
+          
+          const chartPoints = document.getElementById('weightChartPoints');
+          const chartLabels = document.getElementById('weightChartLabels');
+          const visibleLogs = logs.slice().reverse();
+          const minWeight = Math.min(...visibleLogs.map(item => Number(item.weight_kg)));
+          const maxWeight = Math.max(...visibleLogs.map(item => Number(item.weight_kg)));
+          const spread = Math.max(maxWeight - minWeight, 1);
+          chartPoints.innerHTML = visibleLogs.map((item, index) => {
+            const offset = ((Number(item.weight_kg) - minWeight) / spread) * 70 - 35;
+            const latestClass = index === visibleLogs.length - 1 ? 'background: var(--accent); border: 2px solid #fff; box-shadow: var(--shadow-md);' : 'background: var(--primary);';
+            return `<span title="${item.date}: ${item.weight_kg} kg" style="width: 12px; height: 12px; border-radius: 50%; ${latestClass} transform: translateY(${offset}px);"></span>`;
+          }).join('');
+          chartLabels.innerHTML = visibleLogs.map(item => `<span>${new Date(item.date).toLocaleDateString([], { day: 'numeric', month: 'short' })} (${Number(item.weight_kg).toFixed(1)} kg)</span>`).join('');
+        }
+      } catch (err) {
+        console.error("Error fetching weight data:", err);
+        setWeightStatus(err.message || 'Unable to load weight history.', true);
       }
     }
 
-    document.getElementById('weightLogForm').addEventListener('submit', function (e) {
+    document.getElementById('weightLogForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      const w = document.getElementById('newWeightInput').value;
-      SHD_Data.addWeight(w);
-      renderWeightProgress();
-      alert(`New weight entry of ${w} kg logged!`);
-      this.reset();
+      const token = getToken();
+      if (!token) {
+        setWeightStatus('Please sign in before saving a weight update.', true);
+        return;
+      }
+
+      const w = parseFloat(document.getElementById('newWeightInput').value);
+      const dateStr = document.getElementById('weightUpdateDate').value || new Date().toISOString().split('T')[0];
+      setWeightStatus('Saving weight update...');
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/weight`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token 
+          },
+          body: JSON.stringify({ date: dateStr, weight_kg: w })
+        });
+        const data = await res.json();
+        
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to save weight update');
+        await renderWeightProgress();
+        setWeightStatus(`Saved weight update for ${dateStr}.`);
+        alert(`Weight update for ${dateStr} saved successfully.`);
+        document.getElementById('newWeightInput').value = '';
+      } catch (err) {
+        console.error("Error logging weight:", err);
+        setWeightStatus(err.message || 'Unable to save weight update.', true);
+        alert(`Failed to save weight update: ${err.message}`);
+      }
     });
 
+    document.getElementById('weightUpdateDate').value = new Date().toISOString().split('T')[0];
     document.addEventListener('DOMContentLoaded', renderWeightProgress);
   </script>
 </body>

@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -133,26 +137,73 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderWaterTracker() {
-      const water = SHD_Data.getWaterLog();
-      document.getElementById('currentWaterLiters').textContent = water.currentAmount;
-      const pct = Math.min(100, Math.round((water.currentAmount / water.targetAmount) * 100));
-      document.getElementById('waterLevelFill').style.height = pct + '%';
+    const API_URL = 'http://localhost:5000/api';
+    
+    function getToken() {
+      return localStorage.getItem('shd_token');
     }
 
-    function logWater(amount) {
-      SHD_Data.addWater(amount);
-      renderWaterTracker();
+    async function renderWaterTracker() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/water`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        
+        if (data.success && data.water) {
+          const w = data.water;
+          const currentAmount = parseFloat(w.amount_liters) || 0;
+          const targetAmount = parseFloat(w.target_liters) || 2.5;
+
+          document.getElementById('currentWaterLiters').textContent = currentAmount.toFixed(2);
+          const pct = Math.min(100, Math.round((currentAmount / targetAmount) * 100));
+          document.getElementById('waterLevelFill').style.height = pct + '%';
+          
+          const targetBadge = document.querySelector('.card-header .badge');
+          if (targetBadge) {
+              targetBadge.textContent = `Target: ${targetAmount} Liters`;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching water data:", err);
+      }
     }
 
-    function resetWater() {
-      const water = SHD_Data.getWaterLog();
-      water.currentAmount = 0;
-      localStorage.setItem('shd_water_intake', JSON.stringify(water));
-      renderWaterTracker();
+    async function logWater(amount) {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/water`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token 
+          },
+          body: JSON.stringify({ amount_liters: amount })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          renderWaterTracker();
+        } else {
+          alert('Failed to log water: ' + data.message);
+        }
+      } catch (err) {
+        console.error("Error logging water:", err);
+      }
+    }
+
+    async function resetWater() {
+      if (!confirm('Reset today\'s water intake?')) return;
+      try {
+        const res = await fetch(`${API_URL}/tracking/water`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
+        if (!res.ok) throw new Error('Unable to reset water intake');
+        renderWaterTracker();
+      } catch (err) { alert(err.message); }
     }
 
     document.addEventListener('DOMContentLoaded', renderWaterTracker);

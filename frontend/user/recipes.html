@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link active">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -93,27 +97,35 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
   <script>
-    function renderRecipes() {
-      const recipes = SHD_Data.getRecipes();
+    async function renderRecipes() {
       const grid = document.getElementById('recipesGrid');
-
-      grid.innerHTML = recipes.map(r => `
+      try {
+        const { recipes = [] } = await SHD_UI.request('/user/recipes');
+        grid.innerHTML = recipes.length ? recipes.map(r => `
         <div class="card" style="padding: 0; overflow: hidden;">
-          <img src="${r.image}" style="width: 100%; height: 160px; object-fit: cover;">
+          <img src="${r.image_url || '../assets/images/logo.jpg'}" style="width: 100%; height: 160px; object-fit: cover;">
           <div style="padding: 20px;">
             <span class="badge badge-primary" style="margin-bottom: 8px;">${r.category}</span>
             <h3 class="font-bold text-lg" style="margin-bottom: 6px;">${r.title}</h3>
-            <p class="text-xs text-muted" style="margin-bottom: 16px;">Author: <strong>${r.author}</strong> | Prep: ${r.prepTime}</p>
+            <p class="text-xs text-muted" style="margin-bottom: 16px;">Author: <strong>${r.author}</strong> | Prep: ${r.prep_time_minutes || 0} mins</p>
             <div class="flex justify-between items-center border-t border-slate-100 pt-3">
               <span class="font-bold text-primary">${r.calories} kcal</span>
-              <button class="btn btn-secondary btn-sm" onclick="alert('Viewing full recipe guide for ${r.title}!')">View Guide</button>
+              <button class="btn btn-secondary btn-sm" onclick="viewRecipe('${r.id}')">View Guide</button>
             </div>
           </div>
         </div>
-      `).join('');
+      `).join('') : '<div class="card"><p class="text-muted">No published recipes are available yet.</p></div>';
+      } catch (error) { grid.innerHTML = `<div class="card"><p class="text-danger">${error.message}</p></div>`; }
+    }
+
+    async function viewRecipe(id) {
+      try {
+        const { recipes = [] } = await SHD_UI.request('/user/recipes');
+        const recipe = recipes.find(item => item.id === id);
+        if (recipe) alert(`${recipe.title}\n\n${recipe.instructions || 'Full preparation guide coming soon.'}`);
+      } catch (error) { alert(error.message); }
     }
 
     document.addEventListener('DOMContentLoaded', renderRecipes);

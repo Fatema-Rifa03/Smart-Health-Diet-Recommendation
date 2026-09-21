@@ -50,6 +50,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Dietitian Meal Plans
           </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
           <a href="recipes.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             Recipes & Guides
@@ -85,6 +89,7 @@
 
       <main class="dashboard-content">
         
+        <div id="plansContainer">
         <div class="card" style="margin-bottom: 32px; border-left: 4px solid var(--primary);">
           <div class="flex justify-between items-center" style="margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
             <div>
@@ -121,12 +126,26 @@
             <a href="chat.html" class="btn btn-secondary btn-sm">Ask Dr. Sarah Question</a>
           </div>
         </div>
+        </div>
 
       </main>
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
+  <script>
+    async function loadPlans() {
+      const container = document.getElementById('plansContainer');
+      try {
+        const { plans = [] } = await SHD_UI.request('/user/meal-plans');
+        container.innerHTML = plans.length ? plans.map(plan => `<div class="card" style="margin-bottom: 32px; border-left: 4px solid var(--primary);">
+          <div class="flex justify-between items-center" style="margin-bottom: 16px; flex-wrap: wrap; gap: 12px;"><div><h2 class="text-2xl font-bold text-primary">${plan.title}</h2><p class="text-xs text-muted">Assigned by: <strong>${plan.dietitian_name}</strong>${plan.specialty ? ` (${plan.specialty})` : ''}</p></div><span class="badge badge-success">${plan.status}</span></div>
+          <div class="grid grid-3 gap-4" style="margin-top: 24px;">${(plan.items || []).map(item => `<div style="background: var(--bg-page); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);"><span class="badge badge-primary" style="margin-bottom: 8px;">${item.category}</span><h3 class="font-bold text-sm">${item.recommendation}</h3></div>`).join('')}</div>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);" class="text-sm font-semibold">Total Target Calorie Allowance: <strong class="text-primary">${plan.target_calories || 0} kcal / day</strong></div>
+        </div>`).join('') : '<div class="card"><p class="text-muted">No meal plan has been assigned yet.</p></div>';
+      } catch (error) { container.innerHTML = `<div class="card"><p class="text-danger">${error.message}</p></div>`; }
+    }
+    document.addEventListener('DOMContentLoaded', loadPlans);
+  </script>
 </body>
 </html>

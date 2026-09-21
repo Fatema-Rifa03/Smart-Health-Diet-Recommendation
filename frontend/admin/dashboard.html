@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
-<body>
+<body class="admin-page">
 
   <div class="dashboard-layout">
     
@@ -61,13 +61,13 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">System Administration Dashboard</h1>
+        <h1 class="text-xl font-bold admin-page-title">System Administration Dashboard</h1>
         <div class="user-profile-menu">
-          <div style="text-align: right;">
+          <div class="admin-profile-copy">
             <span class="font-bold text-sm block">System Administrator</span>
             <span class="badge badge-danger">Super Admin</span>
           </div>
-          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
+          <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
@@ -102,7 +102,7 @@
 
         </div>
 
-        <!-- System Quick Overview -->
+        <!-- System Quick Overview & Recent Logs -->
         <div class="grid grid-2 gap-6">
           <div class="card">
             <div class="card-header">
@@ -111,28 +111,26 @@
             <div class="flex flex-col gap-3">
               <a href="dietitian-approvals.html" class="btn btn-primary btn-full flex justify-between">
                 <span>Approve Pending Dietitians</span>
-                <span class="badge badge-warning">1 Pending</span>
+                <span class="badge badge-warning">Action Required</span>
               </a>
               <a href="food-database.html" class="btn btn-secondary btn-full flex justify-between">
                 <span>Manage Food Calorie Catalog</span>
-                <span class="badge badge-primary">8 Foods</span>
+                <span class="badge badge-primary">Catalog Manager</span>
               </a>
               <a href="system-reports.html" class="btn btn-outline btn-full flex justify-between">
-                <span>Generate PDF Reports</span>
-                <span>Print PDF</span>
+                <span>Generate PDF Reports & CSV</span>
+                <span>Export Reports</span>
               </a>
             </div>
           </div>
 
           <div class="card">
             <div class="card-header">
-              <h2 class="card-title">System Status</h2>
+              <h2 class="card-title">Recent System Audit Logs</h2>
+              <a href="settings.html" class="text-xs text-primary font-semibold">View All</a>
             </div>
-            <div style="font-size: 0.875rem; line-height: 1.8; color: var(--text-muted);">
-              ✔ <strong>Database Health:</strong> 100% Operational<br>
-              ✔ <strong>Calorie Calculator Engine:</strong> Active<br>
-              ✔ <strong>Storage Backend:</strong> LocalStorage State Sync<br>
-              ✔ <strong>PDF Report Generator:</strong> Ready
+            <div id="adminRecentActivityFeed">
+              <!-- Rendered dynamically by admin.js -->
             </div>
           </div>
         </div>
@@ -143,19 +141,6 @@
 
   <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderAdminDashboard() {
-      const users = SHD_Data.getUsers();
-      const dietitians = SHD_Data.getDietitians();
-      const foods = SHD_Data.getFoodDatabase();
-
-      document.getElementById('adminDashboardTotalUsers').textContent = users.length + 140;
-      document.getElementById('adminDashboardApprovedDietitians').textContent = dietitians.filter(d => d.status === 'Approved').length;
-      document.getElementById('adminDashboardPendingDietitians').textContent = dietitians.filter(d => d.status === 'Pending').length;
-      document.getElementById('adminDashboardFoodCount').textContent = foods.length;
-    }
-
-    document.addEventListener('DOMContentLoaded', renderAdminDashboard);
-  </script>
+  <script src="../assets/js/admin.js"></script>
 </body>
 </html>
