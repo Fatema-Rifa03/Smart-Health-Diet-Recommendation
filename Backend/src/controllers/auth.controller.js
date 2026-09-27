@@ -10,6 +10,8 @@ const JWT_EXPIRES_IN = "7d";
 // REGISTER
 // ===============================
 export const register = async (req, res) => {
+    let client;
+
     try {
         const {
             full_name,
@@ -37,13 +39,17 @@ export const register = async (req, res) => {
 
         const normalizedEmail = email.toLowerCase().trim();
 
-        // Check if user already exists
-        const userExists = await pool.query(
+        client = await pool.connect();
+        await client.query("BEGIN");
+
+        // Check if user already exists inside the registration transaction.
+        const userExists = await client.query(
             "SELECT id FROM accounts WHERE lower(email) = $1",
             [normalizedEmail]
         );
 
         if (userExists.rows.length > 0) {
+            await client.query("ROLLBACK");
             return res.status(409).json({
                 success: false,
                 message: "User with this email already exists"
@@ -58,7 +64,7 @@ export const register = async (req, res) => {
         const newUserId = crypto.randomUUID();
 
         // Create application account and role-specific onboarding data.
-        const result = await pool.query(
+        const result = await client.query(
             `
             INSERT INTO accounts
                 (id, full_name, email, role, password_hash)
@@ -85,19 +91,21 @@ export const register = async (req, res) => {
 
         if (role === "user") {
             const { age, height_cm, current_weight_kg, primary_goal, daily_calorie_target } = req.body;
-            await pool.query(
+            await client.query(
                 `INSERT INTO user_profiles (account_id, age, height_cm, starting_weight_kg, current_weight_kg, primary_goal, daily_calorie_target)
                  VALUES ($1, $2, $3, $4, $4, $5, $6)`,
                 [newUserId, age || null, height_cm || null, current_weight_kg || null, primary_goal || null, daily_calorie_target || 2000]
             );
         } else {
             const { specialty, qualification, years_experience } = req.body;
-            await pool.query(
+            await client.query(
                 `INSERT INTO dietitian_profiles (account_id, specialty, qualification, years_experience)
                  VALUES ($1, $2, $3, $4)`,
                 [newUserId, specialty || "Clinical Dietitian", qualification || null, years_experience || null]
             );
         }
+
+        await client.query("COMMIT");
 
         // Generate JWT
         const token = jwt.sign(
@@ -116,6 +124,10 @@ export const register = async (req, res) => {
         });
 
     } catch (error) {
+        if (client) {
+            await client.query("ROLLBACK").catch(() => {});
+        }
+
         console.error("Register error:", error);
 
         // Keep the response correct even if two registrations pass the pre-check at once.
@@ -130,6 +142,8 @@ export const register = async (req, res) => {
             success: false,
             message: "Internal server error"
         });
+    } finally {
+        client?.release();
     }
 };
 
