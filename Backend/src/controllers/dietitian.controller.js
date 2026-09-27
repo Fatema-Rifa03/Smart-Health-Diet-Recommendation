@@ -234,17 +234,35 @@ export const getDietitianDashboard = async (req, res) => {
     try {
         const dietitianId = req.account.id;
 
+        const profileRes = await pool.query(
+            "SELECT specialty, rating, status, review_note FROM dietitian_profiles WHERE account_id = $1",
+            [dietitianId]
+        );
+
+        const profile = profileRes.rows[0] || { status: "pending", specialty: "Clinical Nutrition", rating: 5.0 };
+
+        // If not verified/approved, dietitian has 0 assigned patients and 0 active requests
+        if (profile.status !== 'approved') {
+            return res.status(200).json({
+                success: true,
+                status: profile.status, // 'pending', 'rejected', 'suspended'
+                stats: {
+                    assignedPatients: 0,
+                    pendingRequests: 0,
+                    activeConsultations: 0,
+                    rating: parseFloat(profile.rating) || 5.0,
+                    specialty: profile.specialty || "Clinical Nutrition"
+                },
+                recentRequests: []
+            });
+        }
+
         const [
-            profileRes,
             assignedPatientsRes,
             pendingRequestsRes,
             conversationsRes,
             recentRequestsRes
         ] = await Promise.all([
-            pool.query(
-                "SELECT specialty, rating, status FROM dietitian_profiles WHERE account_id = $1",
-                [dietitianId]
-            ),
             pool.query(
                 `SELECT COUNT(DISTINCT patient_id)::int AS count
                  FROM guidance_requests
@@ -286,11 +304,9 @@ export const getDietitianDashboard = async (req, res) => {
             )
         ]);
 
-        const profile = profileRes.rows[0] || { status: "pending", specialty: "Clinical Nutrition", rating: 5.0 };
-
         return res.status(200).json({
             success: true,
-            status: profile.status, // 'pending', 'approved', 'rejected', 'suspended'
+            status: profile.status,
             stats: {
                 assignedPatients: assignedPatientsRes.rows[0].count,
                 pendingRequests: pendingRequestsRes.rows[0].count,
@@ -314,7 +330,24 @@ export const getAssignedPatients = async (req, res) => {
     try {
         const dietitianId = req.account.id;
 
-        // Fetch patients who have guidance requests with this dietitian
+        // Check if dietitian is approved
+        const profileRes = await pool.query(
+            "SELECT status FROM dietitian_profiles WHERE account_id = $1",
+            [dietitianId]
+        );
+        const profileStatus = profileRes.rows[0]?.status || 'pending';
+
+        if (profileStatus !== 'approved') {
+            return res.status(200).json({
+                success: true,
+                verified: false,
+                status: profileStatus,
+                message: "Dietitian profile is not verified yet. Verification by administrator is required.",
+                patients: []
+            });
+        }
+
+        // Fetch patients who have ACCEPTED guidance requests with this dietitian
         const result = await pool.query(
             `SELECT DISTINCT ON (p.id)
                 p.id,
@@ -336,36 +369,12 @@ export const getAssignedPatients = async (req, res) => {
              JOIN accounts p ON p.id = gr.patient_id
              LEFT JOIN user_profiles up ON up.account_id = p.id
              LEFT JOIN conversations conv ON conv.patient_id = p.id AND conv.dietitian_id = $1
-             WHERE gr.dietitian_id = $1
+             WHERE gr.dietitian_id = $1 AND gr.status = 'accepted'
              ORDER BY p.id, gr.created_at DESC`,
             [dietitianId]
         );
 
-        // If dietitian has no requests yet, optionally provide user list if they are approved
-        let patients = result.rows;
-        if (patients.length === 0) {
-            const allUsers = await pool.query(
-                `SELECT
-                    a.id,
-                    a.full_name AS name,
-                    a.email,
-                    up.age,
-                    INITCAP(COALESCE(up.gender, 'Unspecified')) AS gender,
-                    up.height_cm AS height,
-                    up.starting_weight_kg AS "startingWeight",
-                    COALESCE(up.current_weight_kg, up.starting_weight_kg) AS weight,
-                    up.target_weight_kg AS "targetWeight",
-                    COALESCE(up.primary_goal, 'General Nutrition') AS goal,
-                    COALESCE(up.daily_calorie_target, 2000) AS "dailyCalorieLimit",
-                    'unassigned' AS "guidanceStatus"
-                 FROM accounts a
-                 JOIN user_profiles up ON up.account_id = a.id
-                 WHERE a.role = 'user' AND a.status = 'active'
-                 ORDER BY a.full_name ASC
-                 LIMIT 10`
-            );
-            patients = allUsers.rows;
-        }
+        const patients = result.rows;
 
         // Calculate BMI for each patient
         const formatted = patients.map(p => {
@@ -380,7 +389,12 @@ export const getAssignedPatients = async (req, res) => {
             };
         });
 
-        return res.status(200).json({ success: true, patients: formatted });
+        return res.status(200).json({
+            success: true,
+            verified: true,
+            status: 'approved',
+            patients: formatted
+        });
     } catch (error) {
         console.error("getAssignedPatients error:", error);
         return res.status(500).json({ success: false, message: "Failed to load patient records" });
@@ -394,6 +408,22 @@ export const getAssignedPatients = async (req, res) => {
 export const getGuidanceRequests = async (req, res) => {
     try {
         const dietitianId = req.account.id;
+
+        // Check if dietitian is approved
+        const profileRes = await pool.query(
+            "SELECT status FROM dietitian_profiles WHERE account_id = $1",
+            [dietitianId]
+        );
+        const profileStatus = profileRes.rows[0]?.status || 'pending';
+
+        if (profileStatus !== 'approved') {
+            return res.status(200).json({
+                success: true,
+                verified: false,
+                status: profileStatus,
+                requests: []
+            });
+        }
 
         const result = await pool.query(
             `SELECT
@@ -412,7 +442,12 @@ export const getGuidanceRequests = async (req, res) => {
             [dietitianId]
         );
 
-        return res.status(200).json({ success: true, requests: result.rows });
+        return res.status(200).json({
+            success: true,
+            verified: true,
+            status: 'approved',
+            requests: result.rows
+        });
     } catch (error) {
         console.error("getGuidanceRequests error:", error);
         return res.status(500).json({ success: false, message: "Failed to fetch guidance requests" });
@@ -519,13 +554,29 @@ export const createDietitianMealPlan = async (req, res) => {
             return res.status(400).json({ success: false, message: "Plan title is required" });
         }
 
+        // Check if dietitian is approved
+        const profileCheck = await client.query(
+            "SELECT status FROM dietitian_profiles WHERE account_id = $1",
+            [dietitianId]
+        );
+        if (profileCheck.rows[0]?.status !== 'approved') {
+            await client.query("ROLLBACK");
+            return res.status(403).json({
+                success: false,
+                message: "You must be a verified and approved dietitian to create and assign meal plans."
+            });
+        }
+
         let resolvedPatientId = patient_id;
 
-        // If patient_id wasn't passed directly, find by name
+        // If patient_id wasn't passed directly, find by name among assigned patients
         if (!resolvedPatientId && patient_name) {
             const userFind = await client.query(
-                "SELECT id FROM accounts WHERE full_name ILIKE $1 AND role = 'user' LIMIT 1",
-                [patient_name.trim()]
+                `SELECT a.id FROM accounts a
+                 JOIN guidance_requests gr ON gr.patient_id = a.id
+                 WHERE a.full_name ILIKE $1 AND a.role = 'user' AND gr.dietitian_id = $2 AND gr.status = 'accepted'
+                 LIMIT 1`,
+                [patient_name.trim(), dietitianId]
             );
             if (userFind.rows.length > 0) {
                 resolvedPatientId = userFind.rows[0].id;
@@ -533,16 +584,11 @@ export const createDietitianMealPlan = async (req, res) => {
         }
 
         if (!resolvedPatientId) {
-            // Find first available patient
-            const fallbackPatient = await client.query(
-                "SELECT id FROM accounts WHERE role = 'user' LIMIT 1"
-            );
-            if (fallbackPatient.rows.length > 0) {
-                resolvedPatientId = fallbackPatient.rows[0].id;
-            } else {
-                await client.query("ROLLBACK");
-                return res.status(400).json({ success: false, message: "Valid patient target is required" });
-            }
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+                success: false,
+                message: "Please select an assigned patient to create a meal plan for."
+            });
         }
 
         const caloriesVal = parseInt(target_calories) || 2000;
