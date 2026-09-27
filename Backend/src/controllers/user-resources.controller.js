@@ -6,7 +6,7 @@ export const listDietitians = async (req, res) => {
     try {
         const search = String(req.query.search || "").trim();
         const result = await pool.query(
-            `SELECT a.id, a.full_name, dp.specialty, dp.years_experience, dp.rating, dp.avatar_url
+            `SELECT a.id, a.full_name, a.email, dp.specialty, dp.years_experience, dp.qualification, dp.rating, dp.avatar_url
              FROM accounts a
              JOIN dietitian_profiles dp ON dp.account_id = a.id
              WHERE a.status = 'active' AND dp.status = 'approved'
@@ -26,10 +26,15 @@ export const listGuidanceRequests = async (req, res) => {
         const column = req.account.role === "user" ? "gr.patient_id" : "gr.dietitian_id";
         const result = await pool.query(
             `SELECT gr.*, p.full_name AS patient_name, p.email AS patient_email,
-                    d.full_name AS dietitian_name, d.email AS dietitian_email
+                    d.full_name AS dietitian_name, d.email AS dietitian_email,
+                    dp.specialty AS dietitian_specialty, dp.years_experience AS dietitian_experience,
+                    dp.qualification AS dietitian_qualification, dp.rating AS dietitian_rating, dp.avatar_url AS dietitian_avatar,
+                    c.id AS conversation_id
              FROM guidance_requests gr
              JOIN accounts p ON p.id = gr.patient_id
              JOIN accounts d ON d.id = gr.dietitian_id
+             LEFT JOIN dietitian_profiles dp ON dp.account_id = d.id
+             LEFT JOIN conversations c ON c.patient_id = gr.patient_id AND c.dietitian_id = gr.dietitian_id
              WHERE ${column} = $1 ORDER BY gr.created_at DESC`,
             [req.account.id]
         );
@@ -44,6 +49,19 @@ export const createGuidanceRequest = async (req, res) => {
     try {
         const { dietitian_id, goal } = req.body;
         if (!dietitian_id || !goal) return res.status(400).json({ success: false, message: "Dietitian and goal are required" });
+
+        // Check if user already has an accepted/assigned dietitian
+        const existingAccepted = await pool.query(
+            `SELECT id FROM guidance_requests WHERE patient_id = $1 AND status = 'accepted'`,
+            [req.account.id]
+        );
+        if (existingAccepted.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "You already have an active assigned dietitian. You cannot send guidance requests to other dietitians."
+            });
+        }
+
         const result = await pool.query(
             `INSERT INTO guidance_requests (patient_id, dietitian_id, goal)
              SELECT $1, dp.account_id, $3
@@ -185,5 +203,95 @@ export const markMessagesRead = async (req, res) => {
     } catch (error) {
         console.error("Error marking messages read:", error);
         return res.status(500).json({ success: false, message: "Failed to mark messages read" });
+    }
+};
+
+export const getActiveMealPlan = async (req, res) => {
+    try {
+        const userId = req.account.id;
+
+        // Fetch active meal plan assigned by dietitian
+        const planResult = await pool.query(
+            `SELECT mp.id, mp.title, mp.target_calories, mp.start_date, mp.end_date, mp.status,
+                    a.id AS dietitian_id, a.full_name AS dietitian_name, dp.specialty AS dietitian_specialty,
+                    COALESCE(json_agg(
+                        json_build_object(
+                            'id', mpi.id,
+                            'category', mpi.category,
+                            'recommendation', mpi.recommendation,
+                            'sort_order', mpi.sort_order
+                        ) ORDER BY mpi.sort_order
+                    ) FILTER (WHERE mpi.id IS NOT NULL), '[]') AS items
+             FROM meal_plans mp
+             JOIN accounts a ON a.id = mp.dietitian_id
+             LEFT JOIN dietitian_profiles dp ON dp.account_id = a.id
+             LEFT JOIN meal_plan_items mpi ON mpi.meal_plan_id = mp.id
+             WHERE mp.patient_id = $1 AND mp.status = 'active'
+             GROUP BY mp.id, a.id, a.full_name, dp.specialty
+             ORDER BY mp.created_at DESC
+             LIMIT 1`,
+            [userId]
+        );
+
+        const plan = planResult.rows.length > 0 ? planResult.rows[0] : null;
+
+        // Fetch today's meal logs
+        const logsResult = await pool.query(
+            `SELECT id, category, meal_name, calories, is_extra, notes, logged_at 
+             FROM meal_logs 
+             WHERE user_id = $1 AND logged_for = CURRENT_DATE 
+             ORDER BY logged_at DESC`,
+            [userId]
+        );
+        const todayLogs = logsResult.rows;
+
+        // User profile target if plan doesn't have one
+        const profResult = await pool.query(
+            `SELECT daily_calorie_target FROM user_profiles WHERE account_id = $1`,
+            [userId]
+        );
+        const defaultTarget = profResult.rows[0]?.daily_calorie_target || 2000;
+        const targetCalories = plan?.target_calories || defaultTarget;
+
+        let regularCalories = 0;
+        let extraCalories = 0;
+        let extraCount = 0;
+
+        for (const m of todayLogs) {
+            const cal = parseInt(m.calories, 10) || 0;
+            if (m.is_extra) {
+                extraCalories += cal;
+                extraCount++;
+            } else {
+                regularCalories += cal;
+            }
+        }
+        const totalCalories = regularCalories + extraCalories;
+
+        let adherenceStatus = 'maintained';
+        if (todayLogs.length === 0) {
+            adherenceStatus = 'no_logs';
+        } else if (extraCount > 0 || extraCalories > 0) {
+            adherenceStatus = 'extra_reported';
+        } else if (totalCalories > targetCalories + 50) {
+            adherenceStatus = 'exceeded';
+        }
+
+        return res.json({
+            success: true,
+            hasPlan: Boolean(plan),
+            plan: plan,
+            todayLogs: todayLogs,
+            calories: {
+                total: totalCalories,
+                regular: regularCalories,
+                extra: extraCalories,
+                target: targetCalories
+            },
+            adherenceStatus
+        });
+    } catch (error) {
+        console.error("Error fetching active meal plan:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch active meal plan" });
     }
 };

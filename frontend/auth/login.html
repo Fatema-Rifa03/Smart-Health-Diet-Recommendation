@@ -79,28 +79,11 @@
         <p class="text-muted text-sm" style="margin-top: 4px;">Sign in to access your portal</p>
       </div>
 
-      <!-- Role Selector Tabs -->
-      <div class="role-tab-group" id="roleTabs">
-        <div class="role-tab active" data-role="user">User</div>
-        <div class="role-tab" data-role="dietitian">Dietitian</div>
-        <div class="role-tab" data-role="admin">Admin</div>
-      </div>
-
-      <!-- Quick Demo Fillers -->
-      <div style="margin-bottom: 20px;">
-        <span class="text-xs text-muted font-semibold block" style="margin-bottom: 8px;">Quick Demo Fill:</span>
-        <div class="flex gap-2 flex-wrap">
-          <span class="demo-pill" onclick="fillDemo('user@example.com', 'user')">👤 User Demo</span>
-          <span class="demo-pill" onclick="fillDemo('sarah.j@smarthealth.com', 'dietitian')">🩺 Dietitian Demo</span>
-          <span class="demo-pill" onclick="fillDemo('admin@smarthealth.com', 'admin')">⚡ Admin Demo</span>
-        </div>
-      </div>
-
       <!-- Login Form -->
       <form id="loginForm">
         <div class="form-group">
           <label class="form-label" for="email">Email Address</label>
-          <input type="email" id="email" class="form-control" placeholder="user@example.com" required value="user@example.com">
+          <input type="email" id="email" class="form-control" placeholder="user@example.com" >
         </div>
 
         <div class="form-group">
@@ -108,7 +91,7 @@
             <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
             <a href="#" class="text-xs text-primary font-semibold hover:underline" onclick="alert('Password reset link sent to your email!')">Forgot password?</a>
           </div>
-          <input type="password" id="password" class="form-control" placeholder="••••••••" required value="password123">
+          <input type="password" id="password" class="form-control" placeholder="••••••••" >
         </div>
 
         <div class="flex items-center gap-2" style="margin-bottom: 24px;">

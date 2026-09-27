@@ -74,8 +74,12 @@
       <main class="dashboard-content">
         
         <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Patient Directory</h2>
+          <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="card-title" style="margin-bottom: 2px;">Assigned Patient Directory &amp; Diet Adherence</h2>
+              <span class="text-xs text-muted">Monitor patient meal logs, diet adherence status, and extra food reports with notes to adjust meal plans.</span>
+            </div>
+            <a href="meal-builder.html" class="btn btn-primary btn-sm">+ Create New Meal Plan</a>
           </div>
 
           <div class="table-container">
@@ -84,10 +88,10 @@
                 <tr>
                   <th>Patient Name</th>
                   <th>Age / Gender</th>
-                  <th>Height & Weight</th>
-                  <th>BMI</th>
-                  <th>Fitness Goal</th>
-                  <th>Action</th>
+                  <th>Active Plan</th>
+                  <th>Diet Adherence Status</th>
+                  <th>Today's Calorie Intake</th>
+                  <th>Clinical Actions</th>
                 </tr>
               </thead>
               <tbody id="patientsTableBody">
@@ -98,6 +102,89 @@
         </div>
 
       </main>
+    </div>
+  </div>
+
+  <!-- Patient Adherence & Extra Food Review Modal -->
+  <div id="patientAdherenceModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div class="flex justify-between items-center" style="margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <div>
+          <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text-main);" id="adhModalPatientName">Patient Review</h3>
+          <span class="text-xs text-muted" id="adhModalPatientMeta">Clinical Adherence &amp; Deviation Breakdown</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeAdherenceModal()" style="padding: 4px 10px; border-radius: 50%;">✕</button>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-3 gap-3" style="margin-bottom: 18px;" id="adhMetricsGrid">
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Adherence Status</span>
+          <span id="adhModalStatusBadge" class="badge badge-success" style="margin-top: 6px; font-size: 0.8rem;">Maintaining</span>
+        </div>
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Today's Intake</span>
+          <strong id="adhModalCalories" style="font-size: 1.15rem; color: var(--primary); display: block; margin-top: 4px;">0 / 2,000 kcal</strong>
+        </div>
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Extra / Off-Plan</span>
+          <strong id="adhModalExtra" style="font-size: 1.15rem; color: #b45309; display: block; margin-top: 4px;">0 kcal</strong>
+        </div>
+      </div>
+
+      <!-- Extra Food Logs & Patient Notes Section -->
+      <div style="margin-bottom: 20px;" id="adhExtraSection">
+        <div class="flex justify-between items-center" style="margin-bottom: 10px;">
+          <strong style="font-size: 0.95rem; color: #b45309;">⚠️ Extra Food Reported by Patient Today</strong>
+          <span class="badge badge-warning" id="adhExtraCountBadge">0 entries</span>
+        </div>
+        <div id="adhExtraLogsList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamic extra logs -->
+        </div>
+      </div>
+
+      <!-- Today's Prescribed Plan & Logged Meals -->
+      <div style="margin-bottom: 20px;">
+        <strong style="font-size: 0.95rem; display: block; margin-bottom: 10px; color: var(--text-main);">📋 Today's Prescribed Meals Intake</strong>
+        <div id="adhPrescribedList" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Dynamic prescribed meals -->
+        </div>
+      </div>
+
+      <!-- Past 7-Day History -->
+      <div style="margin-bottom: 24px;">
+        <strong style="font-size: 0.95rem; display: block; margin-bottom: 10px; color: var(--text-main);">📅 Past 7 Days Log History</strong>
+        <div class="table-container" style="max-height: 180px; overflow-y: auto;">
+          <table class="table" style="font-size: 0.85rem;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Meal Item</th>
+                <th>Calories</th>
+                <th>Type / Notes</th>
+              </tr>
+            </thead>
+            <tbody id="adhHistoryTableBody">
+              <!-- Dynamic history -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Modal Footer with Adjust Next Meal Plan Button -->
+      <div class="flex justify-between items-center" style="border-top: 1px solid var(--border); padding-top: 16px; flex-wrap: wrap; gap: 12px;">
+        <span class="text-xs text-muted" style="max-width: 320px;">
+          Use patient feedback and extra food cravings to personalize and adjust their next meal plan.
+        </span>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-outline" onclick="closeAdherenceModal()">Close</button>
+          <a href="#" id="adhAdjustPlanBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #1e8faa 0%, #2ab3c0 100%);">
+            Adjust Next Meal Plan &rarr;
+          </a>
+        </div>
+      </div>
+
     </div>
   </div>
 

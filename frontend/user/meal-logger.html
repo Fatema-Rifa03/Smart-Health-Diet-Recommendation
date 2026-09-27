@@ -26,9 +26,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dashboard Overview
           </a>
-          <a href="health-profile.html" class="sidebar-link">
+          <a href="profile.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Health Profile & Goals
+            My Profile &amp; Account
+          </a>
+          <a href="health-profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Health Profile &amp; Goals
           </a>
           <a href="meal-logger.html" class="sidebar-link active">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -54,10 +58,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
             Find a Dietitian
           </a>
-          <a href="recipes.html" class="sidebar-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            Recipes & Guides
-          </a>
           <a href="calorie-reports.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             Calorie Reports
@@ -80,9 +80,12 @@
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Daily Meal Logger & Calorie Calculation</h1>
+        <h1 class="text-xl font-bold">Daily Meal Logger &amp; Calorie Calculation</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">Fatema Rifa</span>
+          <div style="text-align: right;">
+            <span class="font-bold text-sm block" id="userNameDisplay">Patient</span>
+            <span class="badge badge-primary">Patient Portal</span>
+          </div>
           <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
       </header>
@@ -95,8 +98,13 @@
             <div>
               <span class="text-xs uppercase font-bold tracking-wider opacity-90 block">Daily Calorie Consumption</span>
               <div class="flex items-center gap-4" style="margin-top: 6px;">
-                <span class="text-3xl font-bold" id="totalCaloriesDisplay">1,010 kcal</span>
-                <span style="opacity: 0.8;">of 2,000 kcal Daily Limit</span>
+                <span class="text-3xl font-bold" id="totalCaloriesDisplay">0 kcal</span>
+                <span style="opacity: 0.9;">of <span id="targetCaloriesDisplay">2,000</span> kcal Prescribed Daily Limit</span>
+              </div>
+              <div class="flex items-center gap-4" style="margin-top: 8px; font-size: 0.825rem; opacity: 0.95;">
+                <span>Prescribed Plan: <strong id="regularCaloriesDisplay">0 kcal</strong></span>
+                <span>&bull;</span>
+                <span>Extra / Off-Plan: <strong id="extraCaloriesDisplay">0 kcal</strong></span>
               </div>
             </div>
             <div id="calorieStatusBadge" class="badge badge-success" style="padding: 8px 16px; font-size: 0.875rem;">
@@ -105,72 +113,86 @@
           </div>
         </div>
 
-        <div class="grid grid-3 gap-6">
-          
-          <!-- Meal Form (2 Cols) -->
-          <div class="card" style="grid-column: span 2;">
-            <div class="card-header">
-              <h2 class="card-title">Log a New Meal</h2>
-              <span class="text-xs text-muted font-semibold">Auto-Calorie Estimation</span>
+        <!-- Prescribed Diet Plan from Dietitian -->
+        <div class="card" style="margin-bottom: 28px;" id="prescribedPlanSection">
+          <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="card-title" style="margin-bottom: 0;">Prescribed Meal Schedule</h2>
+                <span class="badge badge-success" id="planDietitianBadge">Assigned by Dietitian</span>
+              </div>
+              <span class="text-xs text-muted" id="planSubtitleText" style="margin-top: 4px; display: block;">
+                Recommended meals crafted by your dietitian. Click <strong>"✓ Log as Eaten"</strong> when consumed.
+              </span>
             </div>
-
-            <form id="mealForm">
-              <div class="grid grid-2 gap-4">
-                <div class="form-group">
-                  <label class="form-label" for="categorySelect">Meal Category</label>
-                  <select id="categorySelect" class="form-control" required>
-                    <option value="Breakfast">Breakfast</option>
-                    <option value="Lunch">Lunch</option>
-                    <option value="Dinner">Dinner</option>
-                    <option value="Snacks">Snack</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="foodSelect">Select Food Item</label>
-                  <select id="foodSelect" class="form-control" onchange="autoCalculateCalories()" required>
-                    <!-- Populated dynamically -->
-                  </select>
-                </div>
-              </div>
-
-              <div class="grid grid-2 gap-4">
-                <div class="form-group">
-                  <label class="form-label" for="servings">Portion / Servings</label>
-                  <input type="number" id="servings" class="form-control" value="1" min="0.5" step="0.5" oninput="autoCalculateCalories()" required>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label" for="calculatedCalories">Calculated Calories (kcal)</label>
-                  <input type="number" id="calculatedCalories" class="form-control font-bold text-primary" readonly style="background-color: var(--bg-page);">
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 12px;">
-                + Add Meal to Today's Tracker
-              </button>
-            </form>
+            <a href="dietitian-plans.html" class="btn btn-outline btn-sm">View Full Plan Details &rarr;</a>
           </div>
 
-          <!-- Food Catalog Sidebar (1 Col) -->
-          <div class="card">
-            <div class="card-header">
-              <h2 class="card-title">Calorie Reference</h2>
-            </div>
-            <p class="text-xs text-muted" style="margin-bottom: 16px;">Calorie count per standard serving:</p>
-
-            <div class="flex flex-col gap-3" id="quickFoodList">
-              <!-- Populated dynamically -->
-            </div>
+          <div id="assignedMealsContainer">
+            <div style="padding: 24px; text-align: center;" class="text-muted">Loading assigned meal plan...</div>
           </div>
-
         </div>
 
-        <!-- Logged Meals Table -->
-        <div class="card" style="margin-top: 32px;">
-          <div class="card-header">
-            <h2 class="card-title">Today's Logged Meals</h2>
-            <button class="btn btn-outline btn-sm text-danger" onclick="clearTodayMeals()">Clear All Logs</button>
+        <!-- Extra / Off-Plan Food Logger Section -->
+        <div class="card" style="margin-bottom: 28px; border-left: 4px solid #f59e0b;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="card-title" style="margin-bottom: 2px; color: #b45309;">+ Log Extra Food or Deviation</h2>
+              <span class="text-xs text-muted">Did you eat something not in your prescribed plan? Report it here with your notes so your dietitian can adjust your next meal plan.</span>
+            </div>
+            <span class="badge badge-warning">Dietitian Notification Enabled</span>
+          </div>
+
+          <form id="extraMealForm" onsubmit="handleExtraMealSubmit(event)">
+            <div class="grid grid-3 gap-4">
+              <div class="form-group">
+                <label class="form-label" for="extraCategorySelect">Meal Category</label>
+                <select id="extraCategorySelect" class="form-control" required>
+                  <option value="snacks" selected>Snacks / Cravings</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="extraFoodName">Food or Drink Item</label>
+                <input type="text" id="extraFoodName" class="form-control" placeholder="e.g. 2 slices pepperoni pizza, chocolate ice cream" required />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="extraCalories">Estimated Calories (kcal)</label>
+                <input type="number" id="extraCalories" class="form-control font-bold" placeholder="e.g. 350" min="1" max="4000" required />
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 4px;">
+              <label class="form-label" for="extraNotes">
+                Patient Reason &amp; Notes for Dietitian
+                <span class="text-xs text-muted" style="font-weight: normal;">(Explain cravings, hunger levels, or special occasions)</span>
+              </label>
+              <textarea id="extraNotes" class="form-control" placeholder="Tell your dietitian why you ate this (e.g. Felt dizzy/low sugar after exercise, late night study craving, attended a social dinner, couldn't cook prescribed meal...)" rows="2" required></textarea>
+            </div>
+
+            <div class="flex justify-between items-center" style="margin-top: 14px; flex-wrap: wrap; gap: 12px;">
+              <span class="text-xs text-muted">
+                ℹ This extra intake will be added to your daily calorie total and shown to your dietitian for next plan adjustments.
+              </span>
+              <button type="submit" class="btn btn-primary" id="saveExtraBtn" style="background: linear-gradient(135deg, #d97706, #f59e0b); border-color: #d97706;">
+                + Save Extra Food &amp; Notify Dietitian
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Today's Logged Meals Table -->
+        <div class="card">
+          <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="card-title" style="margin-bottom: 2px;">Today's Complete Meal Intake</h2>
+              <span class="text-xs text-muted">Log of all consumed meals (prescribed &amp; extra food entries)</span>
+            </div>
+            <button class="btn btn-outline btn-sm text-danger" onclick="clearTodayMeals()">Clear All Today's Logs</button>
           </div>
 
           <div class="table-container">
@@ -180,6 +202,7 @@
                   <th>Category</th>
                   <th>Food Item</th>
                   <th>Calories</th>
+                  <th>Intake Type / Patient Note</th>
                   <th>Time Logged</th>
                   <th>Action</th>
                 </tr>
@@ -197,181 +220,361 @@
 
   <script src="../assets/js/main.js"></script>
   <script>
-    let foodDb = [];
     const API_URL = 'http://localhost:5000/api';
-    
+    let currentActivePlan = null;
+    let currentLoggedMeals = [];
+
     function getToken() {
       return localStorage.getItem('shd_token');
     }
 
-    async function initMealLogger() {
-      const token = getToken();
-      if (!token) return;
-
-      try {
-        const res = await fetch(`${API_URL}/foods`, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        
-        if (data.success) {
-          foodDb = data.foods;
-        }
-      } catch (err) {
-        console.error("Failed to load foods", err);
-      }
-
-      const foodSelect = document.getElementById('foodSelect');
-      let optionsHtml = `<option value="">-- Select Food --</option>`;
-      optionsHtml += foodDb.map(f => `
-        <option value="${f.id}" data-calories="${f.calories}" data-name="${f.name}">
-          ${f.name} (${f.calories} kcal / ${f.portion_description || 'Serving'})
-        </option>
-      `).join('');
-      optionsHtml += `<option value="custom">Other (Custom Entry)</option>`;
+    function parsePlanRecommendation(rec) {
+      if (!rec) return { name: 'Prescribed Item', calories: 250 };
+      let calories = 250;
+      const calMatch = rec.match(/(?:\[|\()?\s*(\d+)\s*(?:kcal|calories|cal)\b/i);
+      if (calMatch) calories = parseInt(calMatch[1], 10);
       
-      foodSelect.innerHTML = optionsHtml;
-
-      autoCalculateCalories();
-      renderMealLogs();
+      let cleanName = rec
+        .replace(/\[\s*\d+\s*kcal[^\]]*\]/gi, '')
+        .replace(/\(\s*\d+\s*kcal[^)]*\)/gi, '')
+        .trim();
+      if (cleanName.endsWith('-')) cleanName = cleanName.slice(0, -1).trim();
+      if (!cleanName) cleanName = rec;
+      return { name: cleanName, calories };
     }
 
-    function autoCalculateCalories() {
-      const foodSelect = document.getElementById('foodSelect');
-      const customContainer = document.getElementById('customFoodContainer');
-      const calcCaloriesInput = document.getElementById('calculatedCalories');
+    function isMealEaten(category, mealName, mealsList) {
+      if (!mealsList || mealsList.length === 0) return null;
+      const normCat = (category || '').toLowerCase();
+      const normName = (mealName || '').toLowerCase().trim();
       
-      const selectedOption = foodSelect.options[foodSelect.selectedIndex];
-      if (!selectedOption || selectedOption.value === "") {
-        calcCaloriesInput.value = "";
+      return mealsList.find(m => {
+        const mCat = (m.category || '').toLowerCase();
+        const mName = (m.meal_name || '').toLowerCase().trim();
+        return (mCat === normCat || (normCat === 'snacks' && mCat === 'snack')) && 
+               (mName.includes(normName) || normName.includes(mName));
+      });
+    }
+
+    async function initMealLogger() {
+      const token = getToken();
+      if (!token) {
+        window.location.href = '../auth/login.html';
         return;
       }
 
-      if (selectedOption.value === "custom") {
-        if(customContainer) customContainer.style.display = 'block';
-        calcCaloriesInput.readOnly = false;
-        calcCaloriesInput.style.backgroundColor = '';
-        calcCaloriesInput.value = ""; // Let user enter
-      } else {
-        if(customContainer) customContainer.style.display = 'none';
-        calcCaloriesInput.readOnly = true;
-        calcCaloriesInput.style.backgroundColor = 'var(--bg-page)';
-        const baseCal = parseFloat(selectedOption.getAttribute('data-calories') || 0);
-        const servings = parseFloat(document.getElementById('servings').value || 1);
-        calcCaloriesInput.value = Math.round(baseCal * servings);
+      const userStr = localStorage.getItem('shd_current_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          document.getElementById('userNameDisplay').textContent = user.full_name || user.name || 'Patient';
+        } catch {}
       }
+
+      await loadActiveMealPlanAndLogs();
     }
 
-    async function renderMealLogs() {
+    async function loadActiveMealPlanAndLogs() {
       const token = getToken();
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_URL}/tracking/meals`, { headers: { 'Authorization': 'Bearer ' + token } });
+        const res = await fetch(`${API_URL}/user/active-meal-plan`, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
         const data = await res.json();
-        
-        if (!data.success) return;
-        const meals = data.meals;
 
-        const total = meals.reduce((sum, m) => sum + parseInt(m.calories || 0), 0);
-        document.getElementById('totalCaloriesDisplay').textContent = `${total.toLocaleString()} kcal`;
-
-        const statusBadge = document.getElementById('calorieStatusBadge');
-        if (total >= 2000) {
-          statusBadge.className = 'badge badge-danger';
-          statusBadge.textContent = 'Calorie Limit Exceeded!';
-        } else if (total >= 1600) {
-          statusBadge.className = 'badge badge-warning';
-          statusBadge.textContent = 'Approaching Limit';
-        } else {
-          statusBadge.className = 'badge badge-success';
-          statusBadge.textContent = 'Within Healthy Limit';
-        }
-
-        const quickList = document.getElementById('quickFoodList');
-        quickList.innerHTML = foodDb.slice(0, 5).map(f => `
-          <div class="flex justify-between items-center" style="padding: 10px; background: var(--bg-page); border-radius: var(--radius-md); font-size: 0.8rem;">
-            <div>
-              <strong style="display: block;">${f.name}</strong>
-              <span class="text-xs text-muted">${f.portion_description || 'Serving'}</span>
-            </div>
-            <span class="badge badge-primary">${f.calories} kcal</span>
-          </div>
-        `).join('');
-
-        const tbody = document.getElementById('mealsListTable');
-        if (meals.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No meals logged for today yet.</td></tr>`;
-        } else {
-          tbody.innerHTML = meals.map(m => `
-            <tr>
-              <td><span class="badge badge-primary">${m.category}</span></td>
-              <td class="font-bold">${m.meal_name}</td>
-              <td class="font-bold text-primary">${m.calories} kcal</td>
-              <td class="text-muted text-xs">${new Date(m.logged_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-              <td><span class="badge badge-success">Logged</span></td>
-            </tr>
-          `).join('');
+        if (data.success) {
+          currentActivePlan = data.plan;
+          currentLoggedMeals = data.todayLogs || [];
+          
+          updateCaloriesBanner(data.calories, data.adherenceStatus);
+          renderAssignedPlan(data.plan, currentLoggedMeals);
+          renderLoggedMealsTable(currentLoggedMeals);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Error fetching active meal plan:', err);
       }
     }
 
-    document.getElementById('mealForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
+    function updateCaloriesBanner(calories, adherenceStatus) {
+      if (!calories) return;
+      const total = calories.total || 0;
+      const regular = calories.regular || 0;
+      const extra = calories.extra || 0;
+      const target = calories.target || 2000;
+
+      document.getElementById('totalCaloriesDisplay').textContent = `${total.toLocaleString()} kcal`;
+      document.getElementById('targetCaloriesDisplay').textContent = `${target.toLocaleString()}`;
+      document.getElementById('regularCaloriesDisplay').textContent = `${regular.toLocaleString()} kcal`;
+      document.getElementById('extraCaloriesDisplay').textContent = `${extra.toLocaleString()} kcal`;
+
+      const badge = document.getElementById('calorieStatusBadge');
+      if (adherenceStatus === 'extra_reported') {
+        badge.className = 'badge badge-warning';
+        badge.textContent = `⚠ Extra Food Reported (+${extra} kcal)`;
+      } else if (adherenceStatus === 'exceeded' || total > target) {
+        badge.className = 'badge badge-danger';
+        badge.textContent = `✕ Calorie Limit Exceeded`;
+      } else if (total > 0) {
+        badge.className = 'badge badge-success';
+        badge.textContent = `✓ Maintaining Diet Plan`;
+      } else {
+        badge.className = 'badge badge-secondary';
+        badge.textContent = `No Meals Logged Today`;
+      }
+    }
+
+    function renderAssignedPlan(plan, loggedMeals) {
+      const container = document.getElementById('assignedMealsContainer');
+      const badge = document.getElementById('planDietitianBadge');
+      const subtitle = document.getElementById('planSubtitleText');
+
+      if (!plan || !plan.items || plan.items.length === 0) {
+        badge.className = 'badge badge-secondary';
+        badge.textContent = 'No Active Plan';
+        subtitle.textContent = 'No dietitian meal plan currently active. Request guidance from a dietitian to receive prescribed meal schedules.';
+        container.innerHTML = `
+          <div style="padding: 32px; text-align: center; background: var(--bg-page); border-radius: var(--radius-md);">
+            <div style="font-size: 24px; margin-bottom: 8px;">🍽️</div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 6px;">No Dietitian Meal Plan Assigned Yet</h3>
+            <p class="text-xs text-muted" style="max-width: 440px; margin: 0 auto 16px;">
+              Your dietitian has not assigned a meal plan to your account yet. You can find dietitians and request personalized meal guidance anytime.
+            </p>
+            <a href="find-dietitian.html" class="btn btn-primary btn-sm">Find Dietitian &rarr;</a>
+          </div>
+        `;
+        return;
+      }
+
+      badge.className = 'badge badge-success';
+      badge.textContent = `Dr. ${plan.dietitian_name || 'Dietitian Specialist'}`;
+      subtitle.innerHTML = `
+        <strong>${plan.title}</strong> &bull; Target: <strong>${plan.target_calories || 2000} kcal/day</strong> &bull; Click <strong>"✓ Log as Eaten"</strong> when you consume a prescribed meal.
+      `;
+
+      const categories = ['breakfast', 'lunch', 'dinner', 'snacks'];
+      const catLabels = { breakfast: 'Breakfast 🍳', lunch: 'Lunch 🥗', dinner: 'Dinner 🍲', snacks: 'Snacks & Light Bites 🍎' };
+      const grouped = { breakfast: [], lunch: [], dinner: [], snacks: [] };
+
+      plan.items.forEach(item => {
+        const cat = (item.category || 'breakfast').toLowerCase();
+        if (grouped[cat]) grouped[cat].push(item);
+        else grouped.breakfast.push(item);
+      });
+
+      let html = `<div class="grid grid-2 gap-4" style="margin-top: 14px;">`;
+
+      categories.forEach(cat => {
+        const items = grouped[cat];
+        html += `
+          <div style="background: var(--bg-page); border-radius: var(--radius-md); padding: 16px; border: 1px solid var(--border);">
+            <div class="flex justify-between items-center" style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+              <strong style="font-size: 0.95rem; color: var(--text-main);">${catLabels[cat]}</strong>
+              <span class="text-xs text-muted font-semibold">${items.length} prescribed item${items.length === 1 ? '' : 's'}</span>
+            </div>
+        `;
+
+        if (items.length === 0) {
+          html += `<p class="text-xs text-muted" style="margin: 8px 0; font-style: italic;">No specific items prescribed for this meal.</p>`;
+        } else {
+          html += `<div class="flex flex-col gap-3">`;
+          items.forEach(item => {
+            const parsed = parsePlanRecommendation(item.recommendation);
+            const alreadyEaten = isMealEaten(cat, parsed.name, loggedMeals);
+
+            html += `
+              <div class="flex justify-between items-center" style="padding: 10px 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid ${alreadyEaten ? '#a7f3d0' : 'var(--border)'};">
+                <div style="flex: 1; padding-right: 12px;">
+                  <strong style="display: block; font-size: 0.88rem; color: var(--text-main);">${parsed.name}</strong>
+                  <div class="flex items-center gap-2" style="margin-top: 4px;">
+                    <span class="badge badge-primary" style="font-size: 0.7rem; padding: 2px 6px;">${parsed.calories} kcal</span>
+                    ${alreadyEaten ? `<span class="badge badge-success" style="font-size: 0.7rem; padding: 2px 6px;">✓ Eaten at ${new Date(alreadyEaten.logged_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>` : ''}
+                  </div>
+                </div>
+                <div>
+                  ${alreadyEaten ? `
+                    <button class="btn btn-sm btn-secondary" disabled style="opacity: 0.7; font-size: 0.75rem; padding: 4px 10px; background: #ecfdf5; color: #047857; border-color: #a7f3d0;">
+                      ✓ Eaten
+                    </button>
+                  ` : `
+                    <button class="btn btn-sm btn-primary" onclick="eatPrescribedMeal('${cat}', '${parsed.name.replace(/'/g, "\\'")}', ${parsed.calories}, this)" style="font-size: 0.75rem; padding: 5px 12px;">
+                      ✓ Log as Eaten
+                    </button>
+                  `}
+                </div>
+              </div>
+            `;
+          });
+          html += `</div>`;
+        }
+
+        html += `</div>`;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    async function eatPrescribedMeal(category, recommendationText, defaultCalories, btnEl) {
       const token = getToken();
       if (!token) return;
 
-      const foodSelect = document.getElementById('foodSelect');
-      const selectedOption = foodSelect.options[foodSelect.selectedIndex];
-      if (!selectedOption || selectedOption.value === "") {
-          alert("Please select a food item");
-          return;
-      }
+      const parsed = parsePlanRecommendation(recommendationText);
+      const calories = defaultCalories || parsed.calories || 250;
+      const foodName = parsed.name;
 
-      const category = document.getElementById('categorySelect').value;
-      const calories = document.getElementById('calculatedCalories').value;
-      
-      let mealName = "";
-      let foodItemId = null;
-
-      if (selectedOption.value === "custom") {
-          mealName = prompt("Enter custom food name:");
-          if (!mealName) return;
-      } else {
-          mealName = selectedOption.getAttribute('data-name');
-          foodItemId = selectedOption.value;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = 'Logging...';
       }
 
       try {
         const res = await fetch(`${API_URL}/tracking/meals`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token
           },
-          body: JSON.stringify({ category, meal_name: mealName, calories: parseInt(calories), food_item_id: foodItemId })
+          body: JSON.stringify({
+            category,
+            meal_name: foodName,
+            calories: parseInt(calories, 10),
+            is_extra: false,
+            notes: null
+          })
         });
+
         const data = await res.json();
-        
         if (data.success) {
-          alert(`Logged ${mealName} (${calories} kcal) successfully!`);
-          renderMealLogs();
-          document.getElementById('mealForm').reset();
-          autoCalculateCalories();
+          await loadActiveMealPlanAndLogs();
         } else {
-          alert("Failed to log meal: " + data.message);
+          alert('Failed to log meal: ' + (data.message || 'Unknown error'));
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = '✓ Log as Eaten';
+          }
+        }
+      } catch (err) {
+        console.error('Error logging prescribed meal:', err);
+        alert('Network error logging meal.');
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = '✓ Log as Eaten';
+        }
+      }
+    }
+
+    async function handleExtraMealSubmit(e) {
+      e.preventDefault();
+      const token = getToken();
+      if (!token) return;
+
+      const category = document.getElementById('extraCategorySelect').value;
+      const mealName = document.getElementById('extraFoodName').value.trim();
+      const calories = parseInt(document.getElementById('extraCalories').value, 10);
+      const notes = document.getElementById('extraNotes').value.trim();
+
+      const saveBtn = document.getElementById('saveExtraBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving & Reporting...';
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/meals`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            category,
+            meal_name: mealName,
+            calories,
+            is_extra: true,
+            notes
+          })
+        });
+
+        const data = await res.json();
+        saveBtn.disabled = false;
+        saveBtn.textContent = '+ Save Extra Food & Notify Dietitian';
+
+        if (data.success) {
+          alert(`Extra food "${mealName}" (${calories} kcal) logged and reported to dietitian!`);
+          document.getElementById('extraMealForm').reset();
+          await loadActiveMealPlanAndLogs();
+        } else {
+          alert('Failed to log extra meal: ' + (data.message || 'Unknown error'));
+        }
+      } catch (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '+ Save Extra Food & Notify Dietitian';
+        console.error(err);
+        alert('Connection error logging extra food.');
+      }
+    }
+
+    function renderLoggedMealsTable(meals) {
+      const tbody = document.getElementById('mealsListTable');
+      if (!meals || meals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 24px;">No meals logged for today yet. Use the prescribed plan above or "+ Log Extra Food" to record your intake.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = meals.map(m => {
+        const isExtra = Boolean(m.is_extra);
+        const timeStr = new Date(m.logged_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        return `
+          <tr>
+            <td><span class="badge ${isExtra ? 'badge-warning' : 'badge-primary'}">${m.category}</span></td>
+            <td class="font-bold">
+              ${m.meal_name}
+            </td>
+            <td class="font-bold ${isExtra ? 'text-warning' : 'text-primary'}">${m.calories} kcal</td>
+            <td>
+              ${isExtra 
+                ? `<div>
+                    <span class="badge badge-warning">Extra / Off-Plan</span>
+                    ${m.notes ? `<div style="font-size: 0.78rem; color: #b45309; margin-top: 4px; background: #fffbeb; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #f59e0b;"><em>"${m.notes}"</em></div>` : ''}
+                   </div>` 
+                : `<span class="badge badge-success">Prescribed Plan</span>`
+              }
+            </td>
+            <td class="text-muted text-xs">${timeStr}</td>
+            <td>
+              <button class="btn btn-outline btn-sm text-danger" onclick="deleteMealLog('${m.id}')" title="Delete log" style="padding: 3px 8px; font-size: 0.75rem;">✕ Remove</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function deleteMealLog(mealId) {
+      if (!confirm('Are you sure you want to remove this logged meal?')) return;
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/meals/${mealId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+          await loadActiveMealPlanAndLogs();
+        } else {
+          alert('Failed to delete meal log.');
         }
       } catch (err) {
         console.error(err);
       }
-    });
+    }
 
     async function clearTodayMeals() {
-      if (!confirm('Clear all meals logged today?')) return;
+      if (!confirm('Clear all meals logged for today?')) return;
       try {
         const res = await fetch(`${API_URL}/tracking/meals/today`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
-        if (!res.ok) throw new Error('Unable to clear today\'s meals');
-        renderMealLogs();
+        if (!res.ok) throw new Error("Unable to clear today's meals");
+        await loadActiveMealPlanAndLogs();
       } catch (err) { alert(err.message); }
     }
 

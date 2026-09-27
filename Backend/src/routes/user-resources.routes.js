@@ -6,6 +6,7 @@ import {
     createGuidanceRequest,
     listRecipes,
     listMealPlans,
+    getActiveMealPlan,
     getProgressReport,
     listConversations,
     listMessages,
@@ -21,6 +22,7 @@ router.get("/guidance-requests", listGuidanceRequests);
 router.post("/guidance-requests", createGuidanceRequest);
 router.get("/recipes", listRecipes);
 router.get("/meal-plans", listMealPlans);
+router.get("/active-meal-plan", getActiveMealPlan);
 router.get("/reports/progress", getProgressReport);
 router.get("/conversations", listConversations);
 router.get("/conversations/:conversationId/messages", listMessages);

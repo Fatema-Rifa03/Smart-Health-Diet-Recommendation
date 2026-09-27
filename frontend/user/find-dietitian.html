@@ -24,9 +24,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dashboard Overview
           </a>
-          <a href="health-profile.html" class="sidebar-link">
+          <a href="profile.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Health Profile & Goals
+            My Profile &amp; Account
+          </a>
+          <a href="health-profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Health Profile &amp; Goals
           </a>
           <a href="meal-logger.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -52,10 +56,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
             Find a Dietitian
           </a>
-          <a href="recipes.html" class="sidebar-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            Recipes & Guides
-          </a>
           <a href="calorie-reports.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             Calorie Reports
@@ -77,53 +77,423 @@
 
     <div class="main-wrapper">
       <header class="top-header">
-        <h1 class="text-xl font-bold">Find a Dietitian</h1>
-        <div class="user-profile-menu"><span class="font-bold text-sm">Fatema Rifa</span><img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar"></div>
-      </header>
-      <main class="dashboard-content">
-        <div class="card" style="margin-bottom: 24px;">
-          <div class="card-header"><div><h2 class="card-title">Find your nutrition guide</h2><p class="text-sm text-muted">Search approved specialists and send a private guidance request.</p></div></div>
-          <div class="search-bar"><span aria-hidden="true">⌕</span><input type="search" id="dietitianSearch" placeholder="Search by name or specialty..."></div>
+        <h1 class="text-xl font-bold">Find a Dietitian &amp; Clinical Directory</h1>
+        <div class="user-profile-menu">
+          <div style="text-align: right;">
+            <span class="font-bold text-sm block" id="userHeaderName">Patient</span>
+            <span class="badge badge-primary">Patient Portal</span>
+          </div>
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
         </div>
-        <div id="dietitianDirectory" class="grid grid-2 gap-6"></div>
+      </header>
+
+      <main class="dashboard-content">
+
+        <!-- Assigned Dietitian Hero Section (Visible if user has an active dietitian) -->
+        <div id="assignedDietitianSection" style="display: none; margin-bottom: 28px;">
+          <div class="card" style="background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 2px solid #10b981; box-shadow: var(--shadow-md);">
+            <div class="flex justify-between items-start" style="flex-wrap: wrap; gap: 20px;">
+              <div class="flex items-center gap-5" style="flex-wrap: wrap;">
+                <img id="assignedAvatar" src="../assets/images/images.jpeg" alt="Dietitian" style="width: 76px; height: 76px; border-radius: var(--radius-full); object-fit: cover; border: 3px solid #10b981; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div>
+                  <div class="flex items-center gap-2" style="flex-wrap: wrap; margin-bottom: 4px;">
+                    <h2 class="card-title" id="assignedName" style="font-size: 1.35rem; margin-bottom: 0; color: #065f46;">Dr. Sarah Jenkins</h2>
+                    <span class="badge badge-success" style="font-size: 0.75rem; padding: 4px 10px;">✓ Your Assigned Specialist</span>
+                  </div>
+                  <p class="text-sm" id="assignedSpecialty" style="color: #047857; font-weight: 600; margin: 0 0 4px;">Clinical Nutrition &amp; Metabolic Care</p>
+                  <div class="flex items-center gap-3 text-xs text-muted" id="assignedMeta">
+                    <span id="assignedExp">5+ years clinical experience</span>
+                    <span>&bull;</span>
+                    <strong class="text-accent" id="assignedRating">★ 5.0 Rating</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons for Assigned Dietitian -->
+              <div class="flex gap-2" style="flex-wrap: wrap; align-items: center;">
+                <button type="button" class="btn btn-outline btn-sm" id="btnViewAssignedProfile" style="border-color: #059669; color: #065f46; background: white;">
+                  View Full Profile &amp; Credentials
+                </button>
+                <a href="chat.html" class="btn btn-primary btn-sm" id="btnAssignedChat" style="background: #10b981; border-color: #10b981;">
+                  💬 Chat with Dietitian
+                </a>
+                <a href="dietitian-plans.html" class="btn btn-outline btn-sm" style="border-color: #059669; color: #065f46; background: white;">
+                  📋 View Prescribed Plans
+                </a>
+              </div>
+            </div>
+
+            <!-- Active Restriction Advisory -->
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #065f46;">
+              <span style="font-size: 1.15rem;">ℹ️</span>
+              <span>
+                You currently have an active care relationship with this specialist. While your assignment is active, sending guidance requests to other dietitians is restricted to ensure consistent clinical supervision.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Request Banner (if awaiting response) -->
+        <div id="pendingRequestNotice" style="display: none; margin-bottom: 24px;">
+          <div class="alert alert-warning" style="margin-bottom: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="pendingNoticeText">
+              <strong>Guidance Request Pending:</strong> You have an open request awaiting approval. Additional requests are temporarily paused.
+            </span>
+          </div>
+        </div>
+
+        <!-- Search & Directory Header -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="card-title">Approved Clinical Dietitian Directory</h2>
+              <p class="text-sm text-muted">Browse accredited nutrition specialists, explore their clinical credentials, and review clinical specialties.</p>
+            </div>
+          </div>
+          <div class="search-bar" style="max-width: 480px;">
+            <span aria-hidden="true" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.1rem;">⌕</span>
+            <input type="search" id="dietitianSearch" placeholder="Search by specialist name or medical specialty (e.g., Diabetes, Weight Loss)..." style="width: 100%; padding: 10px 16px 10px 42px; border-radius: var(--radius-full); border: 1px solid var(--border); background-color: var(--bg-page); font-size: 0.875rem;">
+          </div>
+        </div>
+
+        <!-- Dietitian Cards Grid -->
+        <div id="dietitianDirectory" class="grid grid-2 gap-6">
+          <div class="card"><p class="text-muted">Loading approved dietitians...</p></div>
+        </div>
+
       </main>
+    </div>
+  </div>
+
+  <!-- Dietitian Profile Inspection Modal -->
+  <div id="dietitianProfileModal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
+      <div class="flex justify-between items-start" style="margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+        <div class="flex items-center gap-4">
+          <img id="modalAvatar" src="../assets/images/images.jpeg" alt="Dietitian" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-light);">
+          <div>
+            <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--text-main);" id="modalName">Dr. Specialist</h3>
+            <span class="badge badge-primary" style="margin-top: 4px;" id="modalSpecialty">Clinical Nutrition</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeDietitianModal()" style="padding: 4px 10px; border-radius: 50%;">✕</button>
+      </div>
+
+      <!-- Key Metrics Row -->
+      <div class="grid grid-3 gap-3" style="margin-bottom: 20px;">
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Rating</span>
+          <strong class="text-accent" style="font-size: 1.15rem; display: block; margin-top: 2px;" id="modalRating">★ 5.0</strong>
+        </div>
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Experience</span>
+          <strong style="font-size: 1.15rem; color: var(--text-main); display: block; margin-top: 2px;" id="modalExperience">5 Yrs</strong>
+        </div>
+        <div style="background: var(--bg-page); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border);">
+          <span class="text-xs text-muted uppercase font-bold block">Verification</span>
+          <span class="badge badge-success" style="margin-top: 4px; font-size: 0.75rem;">✓ Approved</span>
+        </div>
+      </div>
+
+      <!-- Qualifications & Credentials -->
+      <div style="margin-bottom: 18px;">
+        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px; letter-spacing: 0.05em;">
+          Academic Qualifications &amp; Credentials
+        </strong>
+        <div style="background: var(--bg-page); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); font-size: 0.925rem; font-weight: 600; color: var(--text-main);" id="modalQualification">
+          Certified Clinical Nutritionist (CCN), Master of Science in Dietetics
+        </div>
+      </div>
+
+      <!-- Clinical Focus -->
+      <div style="margin-bottom: 20px;">
+        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px; letter-spacing: 0.05em;">
+          Clinical Focus &amp; Dietary Scope
+        </strong>
+        <p style="font-size: 0.875rem; color: var(--text-main); line-height: 1.6; margin: 0; background: var(--bg-page); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border);" id="modalBio">
+          Specializes in evidence-based macronutrient optimization, personalized metabolic health planning, calorie-controlled deficit diets, and sustainable lifestyle nutritional therapy.
+        </p>
+      </div>
+
+      <!-- Relationship Status Alert / Action Footer -->
+      <div id="modalStatusContainer" style="margin-top: 20px;">
+        <!-- Dynamic based on user assignment -->
+      </div>
     </div>
   </div>
 
   <script src="../assets/js/main.js"></script>
   <script>
+    let cachedDietitians = [];
+    let cachedRequests = [];
+    let assignedDietitian = null;
+    let pendingRequest = null;
+
+    function openDietitianModal() {
+      const modal = document.getElementById('dietitianProfileModal');
+      if (modal) modal.classList.add('active');
+    }
+
+    function closeDietitianModal() {
+      const modal = document.getElementById('dietitianProfileModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    async function viewDietitianProfile(dietitianId) {
+      const d = cachedDietitians.find(item => item.id === dietitianId) || 
+                (assignedDietitian && assignedDietitian.id === dietitianId ? assignedDietitian : null);
+      if (!d) return;
+
+      document.getElementById('modalAvatar').src = d.avatar_url || '../assets/images/images.jpeg';
+      document.getElementById('modalName').textContent = d.full_name || 'Dr. Specialist';
+      document.getElementById('modalSpecialty').textContent = d.specialty || 'Clinical Nutrition';
+      document.getElementById('modalRating').textContent = `★ ${parseFloat(d.rating || 5.0).toFixed(1)}`;
+      document.getElementById('modalExperience').textContent = `${d.years_experience || 0} Yrs`;
+      document.getElementById('modalQualification').textContent = d.qualification || 'Certified Clinical Nutritionist (CCN)';
+      
+      const statusContainer = document.getElementById('modalStatusContainer');
+      const isAssigned = assignedDietitian && assignedDietitian.id === d.id;
+
+      if (isAssigned) {
+        statusContainer.innerHTML = `
+          <div class="alert alert-success" style="margin-bottom: 16px;">
+            <span>✓ <strong>Dr. ${d.full_name} is your actively assigned dietitian.</strong> They review your daily meal logs and manage your meal plans.</span>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button type="button" class="btn btn-outline" onclick="closeDietitianModal()">Close</button>
+            <a href="chat.html" class="btn btn-primary">💬 Open Direct Chat</a>
+          </div>
+        `;
+      } else if (assignedDietitian) {
+        statusContainer.innerHTML = `
+          <div class="alert alert-warning" style="margin-bottom: 16px;">
+            <span>ℹ️ You are currently assigned to <strong>Dr. ${assignedDietitian.full_name}</strong>. While your active care continues, sending guidance requests to other dietitians is restricted.</span>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" class="btn btn-outline" onclick="closeDietitianModal()">Close</button>
+          </div>
+        `;
+      } else if (pendingRequest && pendingRequest.dietitian_id === d.id) {
+        statusContainer.innerHTML = `
+          <div class="alert alert-warning" style="margin-bottom: 16px;">
+            <span>⏳ You have a guidance request pending approval with Dr. ${d.full_name}.</span>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" class="btn btn-outline" onclick="closeDietitianModal()">Close</button>
+          </div>
+        `;
+      } else if (pendingRequest) {
+        statusContainer.innerHTML = `
+          <div class="alert alert-warning" style="margin-bottom: 16px;">
+            <span>⏳ You already have an open guidance request awaiting review. You cannot submit multiple requests at once.</span>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" class="btn btn-outline" onclick="closeDietitianModal()">Close</button>
+          </div>
+        `;
+      } else {
+        statusContainer.innerHTML = `
+          <div class="flex justify-end gap-3">
+            <button type="button" class="btn btn-outline" onclick="closeDietitianModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="sendRequestFromModal('${d.id}')">
+              Request Guidance from Dr. ${d.full_name} &rarr;
+            </button>
+          </div>
+        `;
+      }
+
+      openDietitianModal();
+    }
+
+    async function sendRequestFromModal(dietitianId) {
+      closeDietitianModal();
+      await sendRequest(dietitianId);
+    }
+
     async function renderDietitians() {
       const query = document.getElementById('dietitianSearch').value.trim().toLowerCase();
       const directory = document.getElementById('dietitianDirectory');
+      
       try {
         const [directoryData, requestData] = await Promise.all([
           SHD_UI.request(`/user/dietitians?search=${encodeURIComponent(query)}`),
           SHD_UI.request('/user/guidance-requests')
         ]);
-        const requests = requestData.requests || [];
-        const dietitians = directoryData.dietitians || [];
-        directory.innerHTML = dietitians.length ? dietitians.map(dietitian => {
-        const request = requests.find(item => item.dietitian_id === dietitian.id && item.status === 'pending');
-        return `<article class="card">
-          <div class="flex items-center gap-4" style="margin-bottom: 16px;">
-            <img src="${dietitian.avatar_url || '../assets/images/images.jpeg'}" alt="${dietitian.full_name}" class="user-avatar">
-            <div><h2 class="card-title">${dietitian.full_name}</h2><p class="text-sm text-muted">${dietitian.specialty}</p></div>
-          </div>
-          <div class="flex justify-between items-center" style="margin-bottom: 20px;"><span class="text-sm">${dietitian.years_experience || 0} years experience</span><strong class="text-accent">★ ${dietitian.rating}</strong></div>
-          <button class="btn ${request ? 'btn-outline' : 'btn-primary'} btn-full" ${request ? 'disabled' : ''} onclick="sendRequest('${dietitian.id}')">${request ? 'Request Pending' : 'Request Guidance'}</button>
-        </article>`;
-        }).join('') : '<div class="card"><p class="text-muted">No approved dietitians match your search.</p></div>';
+
+        cachedRequests = requestData.requests || [];
+        cachedDietitians = directoryData.dietitians || [];
+
+        // Check if patient has an ACCEPTED guidance request (active assigned dietitian)
+        const acceptedReq = cachedRequests.find(item => item.status === 'accepted');
+        pendingRequest = cachedRequests.find(item => item.status === 'pending');
+
+        const assignedSection = document.getElementById('assignedDietitianSection');
+        const pendingNotice = document.getElementById('pendingRequestNotice');
+
+        if (acceptedReq) {
+          // Identify assigned dietitian object
+          assignedDietitian = cachedDietitians.find(d => d.id === acceptedReq.dietitian_id) || {
+            id: acceptedReq.dietitian_id,
+            full_name: acceptedReq.dietitian_name || 'Dietitian Specialist',
+            specialty: acceptedReq.dietitian_specialty || 'Clinical Nutrition',
+            years_experience: acceptedReq.dietitian_experience || 5,
+            qualification: acceptedReq.dietitian_qualification || 'Certified Clinical Nutritionist',
+            rating: acceptedReq.dietitian_rating || 5.0,
+            avatar_url: acceptedReq.dietitian_avatar || '../assets/images/images.jpeg'
+          };
+
+          // Populate Assigned Hero Card
+          document.getElementById('assignedAvatar').src = assignedDietitian.avatar_url || '../assets/images/images.jpeg';
+          document.getElementById('assignedName').textContent = `Dr. ${assignedDietitian.full_name}`;
+          document.getElementById('assignedSpecialty').textContent = assignedDietitian.specialty;
+          document.getElementById('assignedExp').textContent = `${assignedDietitian.years_experience || 0}+ years clinical experience`;
+          document.getElementById('assignedRating').textContent = `★ ${parseFloat(assignedDietitian.rating || 5.0).toFixed(1)} Rating`;
+          
+          document.getElementById('btnViewAssignedProfile').onclick = () => viewDietitianProfile(assignedDietitian.id);
+          
+          const chatBtn = document.getElementById('btnAssignedChat');
+          if (acceptedReq.conversation_id) {
+            chatBtn.href = `chat.html?conv=${acceptedReq.conversation_id}`;
+          } else {
+            chatBtn.href = `chat.html`;
+          }
+
+          assignedSection.style.display = 'block';
+          pendingNotice.style.display = 'none';
+        } else {
+          assignedDietitian = null;
+          assignedSection.style.display = 'none';
+
+          if (pendingRequest) {
+            pendingNotice.style.display = 'block';
+            document.getElementById('pendingNoticeText').innerHTML = `
+              <strong>Guidance Request Pending:</strong> You sent a request to <strong>Dr. ${pendingRequest.dietitian_name || 'Dietitian'}</strong>. Please await their review before sending another request.
+            `;
+          } else {
+            pendingNotice.style.display = 'none';
+          }
+        }
+
+        // Render Directory Cards
+        if (cachedDietitians.length === 0) {
+          directory.innerHTML = '<div class="card" style="grid-column: span 2;"><p class="text-muted text-center" style="padding: 24px;">No approved clinical dietitians match your search query.</p></div>';
+          return;
+        }
+
+        directory.innerHTML = cachedDietitians.map(dietitian => {
+          const isThisDietitianAssigned = assignedDietitian && assignedDietitian.id === dietitian.id;
+          const isThisDietitianPending = pendingRequest && pendingRequest.dietitian_id === dietitian.id;
+
+          let cardBorder = 'border: 1px solid var(--border);';
+          let badgeHtml = '<span class="badge badge-secondary" style="font-size: 0.725rem;">Accredited Specialist</span>';
+          let actionButtons = '';
+
+          if (isThisDietitianAssigned) {
+            cardBorder = 'border: 2px solid #10b981; background: #f0fdf4;';
+            badgeHtml = '<span class="badge badge-success" style="font-size: 0.75rem; padding: 4px 10px;">✓ Your Assigned Specialist</span>';
+            actionButtons = `
+              <div class="flex gap-2">
+                <button class="btn btn-primary btn-full" onclick="viewDietitianProfile('${dietitian.id}')" style="background: #10b981; border-color: #10b981;">
+                  View Assigned Profile
+                </button>
+                <a href="chat.html" class="btn btn-outline btn-sm" style="border-color: #059669; color: #065f46; display: flex; align-items: center; justify-content: center; padding: 0 16px;">
+                  💬 Chat
+                </a>
+              </div>
+            `;
+          } else if (assignedDietitian) {
+            // User ALREADY has an assigned dietitian -> can show other dietitians, but CANNOT request them!
+            actionButtons = `
+              <button class="btn btn-outline btn-full" disabled style="opacity: 0.65; cursor: not-allowed; font-size: 0.85rem; border-style: dashed;" title="You already have an active assigned dietitian (Dr. ${assignedDietitian.full_name})">
+                Cannot Request (Active Dietitian Assigned)
+              </button>
+              <button class="btn btn-sm btn-outline btn-full" onclick="viewDietitianProfile('${dietitian.id}')" style="margin-top: 8px;">
+                View Profile &amp; Credentials
+              </button>
+            `;
+          } else if (isThisDietitianPending) {
+            actionButtons = `
+              <button class="btn btn-outline btn-full" disabled style="color: #b45309; border-color: #f59e0b; background: #fffbeb;">
+                ⏳ Request Pending Review
+              </button>
+              <button class="btn btn-sm btn-outline btn-full" onclick="viewDietitianProfile('${dietitian.id}')" style="margin-top: 8px;">
+                View Profile &amp; Credentials
+              </button>
+            `;
+          } else if (pendingRequest) {
+            actionButtons = `
+              <button class="btn btn-outline btn-full" disabled style="opacity: 0.6; cursor: not-allowed; font-size: 0.85rem;">
+                Request in Progress Elsewhere
+              </button>
+              <button class="btn btn-sm btn-outline btn-full" onclick="viewDietitianProfile('${dietitian.id}')" style="margin-top: 8px;">
+                View Profile &amp; Credentials
+              </button>
+            `;
+          } else {
+            actionButtons = `
+              <button class="btn btn-primary btn-full" onclick="sendRequest('${dietitian.id}')">
+                Request Guidance
+              </button>
+              <button class="btn btn-sm btn-outline btn-full" onclick="viewDietitianProfile('${dietitian.id}')" style="margin-top: 8px;">
+                View Profile &amp; Credentials
+              </button>
+            `;
+          }
+
+          return `
+            <article class="card" style="${cardBorder}">
+              <div class="flex items-start justify-between" style="margin-bottom: 14px;">
+                <div class="flex items-center gap-4">
+                  <img src="${dietitian.avatar_url || '../assets/images/images.jpeg'}" alt="${dietitian.full_name}" class="user-avatar" style="width: 52px; height: 52px;">
+                  <div>
+                    <h2 class="card-title" style="margin-bottom: 2px; font-size: 1.05rem;">${dietitian.full_name}</h2>
+                    <p class="text-xs text-muted" style="margin: 0;">${dietitian.specialty || 'Clinical Nutrition'}</p>
+                  </div>
+                </div>
+                ${badgeHtml}
+              </div>
+
+              <div style="background: var(--bg-page); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; border: 1px solid var(--border);">
+                <span class="text-xs text-muted block" style="font-weight: 600;">Credentials:</span>
+                <span style="font-size: 0.825rem; color: var(--text-main);">${dietitian.qualification || 'Certified Clinical Nutritionist (CCN)'}</span>
+              </div>
+
+              <div class="flex justify-between items-center" style="margin-bottom: 18px; font-size: 0.85rem;">
+                <span class="text-muted">${dietitian.years_experience || 0} years experience</span>
+                <strong class="text-accent" style="font-size: 0.95rem;">★ ${parseFloat(dietitian.rating || 5.0).toFixed(1)}</strong>
+              </div>
+
+              ${actionButtons}
+            </article>
+          `;
+        }).join('');
+
       } catch (error) {
-        directory.innerHTML = `<div class="card"><p class="text-danger">${error.message}</p></div>`;
+        console.error(error);
+        directory.innerHTML = `<div class="card" style="grid-column: span 2;"><p class="text-danger text-center" style="padding: 24px;">${error.message}</p></div>`;
       }
     }
 
     async function sendRequest(dietitianId) {
+      if (assignedDietitian) {
+        alert(`You already have an active dietitian (Dr. ${assignedDietitian.full_name}). You cannot request another dietitian.`);
+        return;
+      }
       try {
         const profile = await SHD_UI.request('/profile');
-        await SHD_UI.request('/user/guidance-requests', { method: 'POST', body: JSON.stringify({ dietitian_id: dietitianId, goal: profile.profile?.primary_goal || 'Personal nutrition guidance' }) });
+        const res = await SHD_UI.request('/user/guidance-requests', {
+          method: 'POST',
+          body: JSON.stringify({
+            dietitian_id: dietitianId,
+            goal: profile.profile?.primary_goal || 'Personal nutrition guidance'
+          })
+        });
+        alert('Guidance request submitted successfully! Your chosen dietitian will review your clinical health profile.');
         await renderDietitians();
-      } catch (error) { alert(error.message); }
+      } catch (error) {
+        alert(error.message);
+      }
     }
 
     document.getElementById('dietitianSearch').addEventListener('input', renderDietitians);

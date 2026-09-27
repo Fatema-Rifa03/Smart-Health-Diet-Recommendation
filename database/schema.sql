@@ -140,6 +140,8 @@ CREATE TABLE meal_logs (
     calories INTEGER NOT NULL CHECK (calories >= 0),
     food_item_id UUID REFERENCES food_items(id) ON DELETE SET NULL,
     recipe_id UUID REFERENCES recipes(id) ON DELETE SET NULL,
+    is_extra BOOLEAN NOT NULL DEFAULT FALSE,
+    notes TEXT,
     logged_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

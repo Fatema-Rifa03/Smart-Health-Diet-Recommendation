@@ -3,14 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Meal Plan - Dietitian Portal</title>
+  <title>Clinical Meal Plan Architect - Dietitian Portal</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <style>
+    .builder-section-card {
+      background: var(--bg-surface, #ffffff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: var(--radius-lg, 12px);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .builder-section-card:hover {
+      border-color: #cbd5e1;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border, #e2e8f0);
+      margin-bottom: 20px;
+    }
+    .category-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main, #0f172a);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+    .category-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .macro-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full, 9999px);
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .macro-pill.cal {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .macro-pill.protein {
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .macro-pill.carbs {
+      background: #fffbeb;
+      color: #92400e;
+    }
+    .macro-pill.fat {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .scope-tab-pill {
+      border: 1px solid var(--border, #cbd5e1);
+      background: #ffffff;
+      color: var(--text-main, #334155);
+      padding: 8px 16px;
+      border-radius: var(--radius-full, 9999px);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .scope-tab-pill:hover {
+      background: #f8fafc;
+      border-color: var(--primary, #2563eb);
+      color: var(--primary, #2563eb);
+    }
+    .scope-tab-pill.active {
+      background: var(--primary, #2563eb);
+      border-color: var(--primary, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    .food-item-chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md, 8px);
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      transition: background 0.15s ease;
+    }
+    .food-item-chip:hover {
+      background: #f1f5f9;
+    }
+    .food-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .food-item-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+    .food-item-meta {
+      font-size: 0.8rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .food-item-remove {
+      background: none;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 6px;
+      border-radius: 6px;
+      line-height: 1;
+      transition: background 0.15s ease;
+    }
+    .food-item-remove:hover {
+      background: #fee2e2;
+    }
+    .custom-food-box {
+      background: #fbfcfe;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-md, 8px);
+      padding: 16px;
+      margin-top: 14px;
+      display: none;
+    }
+    .custom-food-box.open {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+    .empty-meal-state {
+      text-align: center;
+      padding: 24px;
+      background: #fafafa;
+      border: 1px dashed #e2e8f0;
+      border-radius: var(--radius-md, 8px);
+      color: #94a3b8;
+      font-size: 0.875rem;
+    }
+    .grand-summary-card {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #ffffff;
+      border-radius: var(--radius-xl, 16px);
+      padding: 24px 32px;
+      margin-top: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+    }
+    .summary-metric {
+      text-align: center;
+    }
+    .summary-metric-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+    .summary-metric-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
 
   <div class="dashboard-layout">
     
+    <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div>
         <div class="sidebar-brand">
@@ -61,63 +244,385 @@
       </div>
     </aside>
 
+    <!-- Main Content Wrapper -->
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Build & Assign Custom Patient Meal Plan</h1>
+        <h1 class="text-xl font-bold">Clinical Meal Plan Architect</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">Dr. Sarah Jenkins</span>
+          <span class="font-bold text-sm">Specialist</span>
           <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
       <main class="dashboard-content">
         
-        <div class="card" style="max-width: 800px; margin: 0 auto;">
-          <div class="card-header">
-            <h2 class="card-title">Custom Meal Plan Form</h2>
-          </div>
-
-          <form id="builderForm">
-            <div class="form-group">
-              <label class="form-label" for="selectPatient">Target Patient</label>
-              <select id="selectPatient" class="form-control" required>
-                <option value="Fatema Rifa">Fatema Rifa (Goal: Weight Loss)</option>
-                <option value="Tanvir Ahmed">Tanvir Ahmed (Goal: Muscle Gain)</option>
-              </select>
+        <!-- Header Info Card -->
+        <div class="card mb-4" style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #a7f3d0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <div>
+              <h2 style="color: #065f46; font-size: 1.35rem; font-weight: 800; margin: 0 0 6px 0;">Interactive Meal Plan Creator</h2>
+              <p style="color: #047857; margin: 0; font-size: 0.925rem;">
+                Select clinical plan templates from database queries or compose custom regimens. Choose stored database food items category-wise or append custom clinical recommendations.
+              </p>
             </div>
+            <a href="patients.html" class="btn btn-outline btn-sm" style="border-color: #059669; color: #065f46; background: white;">
+              &larr; View Patient Directory
+            </a>
+          </div>
+        </div>
+
+        <form id="builderForm">
+          
+          <!-- SECTION 1: Patient Target & Plan Fundamentals -->
+          <div class="builder-section-card">
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <span>1. Target Patient & Plan Identification</span>
+            </h3>
 
             <div class="grid grid-2 gap-4">
+              <!-- Target Patient -->
               <div class="form-group">
-                <label class="form-label" for="planTitle">Plan Title</label>
-                <input type="text" id="planTitle" class="form-control" placeholder="e.g. Low-Carb High-Protein Plan" required>
+                <label class="form-label" for="selectPatient">Target Patient <span class="text-danger">*</span></label>
+                <select id="selectPatient" class="form-control" required>
+                  <option value="">-- Loading assigned patients... --</option>
+                </select>
+                <small id="patientMetaHint" class="text-muted" style="display: block; margin-top: 6px; font-size: 0.8rem;">
+                  Select an assigned patient to auto-sync their target calories and health goal.
+                </small>
               </div>
+
+              <!-- Plan Title Selector (DB Query + Custom Option) -->
               <div class="form-group">
-                <label class="form-label" for="targetCalories">Target Daily Calories (kcal)</label>
-                <input type="number" id="targetCalories" class="form-control" value="1800" required>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label class="form-label" for="planTitleSelect" style="margin-bottom: 0;">Plan Title / Clinical Protocol <span class="text-danger">*</span></label>
+                  <button type="button" id="btnToggleCustomTitle" class="btn btn-ghost btn-sm" style="padding: 2px 8px; font-size: 0.775rem; color: var(--primary, #2563eb);">
+                    ✏️ Toggle Custom Title
+                  </button>
+                </div>
+                <select id="planTitleSelect" class="form-control">
+                  <option value="">-- Select a Plan Title from Database --</option>
+                  <!-- Populated from DB via API -->
+                  <option value="__custom__">✨ Custom Plan Title (Write your own)...</option>
+                </select>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="breakfast">Breakfast Recommendation</label>
-              <input type="text" id="breakfast" class="form-control" placeholder="Berry Oatmeal with chia seeds (350 kcal)" required>
+            <!-- Custom Title Input (Revealed when Custom is chosen) -->
+            <div id="customTitleWrap" class="form-group" style="display: none; margin-top: 14px; background: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <label class="form-label" for="customPlanTitle">Custom Plan Title Name <span class="text-danger">*</span></label>
+              <input type="text" id="customPlanTitle" class="form-control" placeholder="e.g. 14-Day Post-Bariatric Protein Focused Protocol">
+              <span class="text-xs text-muted" style="display: block; margin-top: 4px;">Type a distinct clinical meal plan title for this patient.</span>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="lunch">Lunch Recommendation</label>
-              <input type="text" id="lunch" class="form-control" placeholder="Grilled Chicken Salad (480 kcal)" required>
+            <div class="grid grid-3 gap-4" style="margin-top: 16px;">
+              <!-- Target Calories -->
+              <div class="form-group">
+                <label class="form-label" for="targetCalories">Daily Calorie Target (kcal) <span class="text-danger">*</span></label>
+                <input type="number" id="targetCalories" class="form-control" value="2000" min="500" max="6000" required>
+              </div>
+              
+              <!-- Start Date -->
+              <div class="form-group">
+                <label class="form-label" for="startDate">Plan Start Date</label>
+                <input type="date" id="startDate" class="form-control">
+              </div>
+
+              <!-- End Date -->
+              <div class="form-group">
+                <label class="form-label" for="endDate">Plan End Date</label>
+                <input type="date" id="endDate" class="form-control">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: Select Which Plan / Meals to Build -->
+          <div class="builder-section-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0;">
+                  2. Select Meal Categories to Build
+                </h3>
+                <p class="text-xs text-muted" style="margin: 4px 0 0 0;">
+                  Choose whether you are building a full-day regimen or focusing on specific meal plans (breakfast, lunch, dinner, snacks).
+                </p>
+              </div>
+              
+              <!-- Dropdown Selector as requested by user -->
+              <div style="min-width: 240px;">
+                <select id="mealScopeSelect" class="form-control" style="font-weight: 600;">
+                  <option value="all">Full Day (All 4 Categories)</option>
+                  <option value="breakfast">Breakfast Only (🍳)</option>
+                  <option value="lunch">Lunch Only (🥗)</option>
+                  <option value="dinner">Dinner Only (🍲)</option>
+                  <option value="snacks">Snacks Only (🍎)</option>
+                </select>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="dinner">Dinner Recommendation</label>
-              <input type="text" id="dinner" class="form-control" placeholder="Steamed Salmon with Asparagus (550 kcal)" required>
+            <!-- Interactive Tab Pills -->
+            <div class="flex gap-2" style="flex-wrap: wrap;" id="scopePillTabs">
+              <button type="button" class="scope-tab-pill active" data-scope="all">
+                <span>🍽️</span> All Meals (4 Categories)
+              </button>
+              <button type="button" class="scope-tab-pill" data-scope="breakfast">
+                <span>🍳</span> Breakfast
+              </button>
+              <button type="button" class="scope-tab-pill" data-scope="lunch">
+                <span>🥗</span> Lunch
+              </button>
+              <button type="button" class="scope-tab-pill" data-scope="dinner">
+                <span>🍲</span> Dinner
+              </button>
+              <button type="button" class="scope-tab-pill" data-scope="snacks">
+                <span>🍎</span> Snacks
+              </button>
+            </div>
+          </div>
+
+          <!-- SECTION 3: Category-Wise Food Builder (Database Foods + Custom Items) -->
+          
+          <!-- BREAKFAST CATEGORY -->
+          <div class="builder-section-card meal-category-card" id="categoryCard_breakfast" data-category="breakfast">
+            <div class="category-header">
+              <div class="category-title">
+                <span style="font-size: 1.35rem;">🍳</span>
+                <span>Breakfast Items</span>
+              </div>
+              <div class="category-badge-group">
+                <span class="macro-pill cal" id="calBadge_breakfast">0 kcal</span>
+                <span class="macro-pill protein" id="protBadge_breakfast">P: 0g</span>
+                <span class="macro-pill carbs" id="carbBadge_breakfast">C: 0g</span>
+                <span class="macro-pill fat" id="fatBadge_breakfast">F: 0g</span>
+              </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 12px;">
-              Publish & Send Meal Plan
+            <!-- Database Food Selector Row -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
+              <div style="flex: 1; min-width: 260px;">
+                <select class="form-control food-picker-select" id="foodPicker_breakfast" data-category="breakfast">
+                  <option value="">-- Choose Stored Food from Database (Breakfast) --</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm btn-add-food" data-category="breakfast" style="white-space: nowrap;">
+                ➕ Add Food
+              </button>
+              <button type="button" class="btn btn-outline btn-sm btn-toggle-custom" data-category="breakfast" style="white-space: nowrap;">
+                ✏️ Custom Item
+              </button>
+            </div>
+
+            <!-- Custom Food Builder Box -->
+            <div class="custom-food-box" id="customBox_breakfast">
+              <strong style="display: block; font-size: 0.85rem; color: #334155; margin-bottom: 10px;">Add Custom Food / Recipe to Breakfast:</strong>
+              <div class="grid grid-3 gap-3">
+                <input type="text" class="form-control custom-food-name" placeholder="Food or dish name (e.g. Poached Eggs & Rye Toast)">
+                <input type="number" class="form-control custom-food-cals" placeholder="Calories (kcal, e.g. 280)" min="0">
+                <input type="text" class="form-control custom-food-portion" placeholder="Portion description (e.g. 2 eggs, 1 slice)">
+              </div>
+              <div class="flex justify-end gap-2" style="margin-top: 10px;">
+                <button type="button" class="btn btn-ghost btn-sm btn-cancel-custom" data-category="breakfast">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm btn-save-custom" data-category="breakfast">Add Custom Item</button>
+              </div>
+            </div>
+
+            <!-- Selected Food Items Container -->
+            <div class="food-items-container" id="itemsList_breakfast">
+              <div class="empty-meal-state">No breakfast items selected yet. Choose from database foods above or add a custom recommendation.</div>
+            </div>
+          </div>
+
+          <!-- LUNCH CATEGORY -->
+          <div class="builder-section-card meal-category-card" id="categoryCard_lunch" data-category="lunch">
+            <div class="category-header">
+              <div class="category-title">
+                <span style="font-size: 1.35rem;">🥗</span>
+                <span>Lunch Items</span>
+              </div>
+              <div class="category-badge-group">
+                <span class="macro-pill cal" id="calBadge_lunch">0 kcal</span>
+                <span class="macro-pill protein" id="protBadge_lunch">P: 0g</span>
+                <span class="macro-pill carbs" id="carbBadge_lunch">C: 0g</span>
+                <span class="macro-pill fat" id="fatBadge_lunch">F: 0g</span>
+              </div>
+            </div>
+
+            <!-- Database Food Selector Row -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
+              <div style="flex: 1; min-width: 260px;">
+                <select class="form-control food-picker-select" id="foodPicker_lunch" data-category="lunch">
+                  <option value="">-- Choose Stored Food from Database (Lunch) --</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm btn-add-food" data-category="lunch" style="white-space: nowrap;">
+                ➕ Add Food
+              </button>
+              <button type="button" class="btn btn-outline btn-sm btn-toggle-custom" data-category="lunch" style="white-space: nowrap;">
+                ✏️ Custom Item
+              </button>
+            </div>
+
+            <!-- Custom Food Builder Box -->
+            <div class="custom-food-box" id="customBox_lunch">
+              <strong style="display: block; font-size: 0.85rem; color: #334155; margin-bottom: 10px;">Add Custom Food / Recipe to Lunch:</strong>
+              <div class="grid grid-3 gap-3">
+                <input type="text" class="form-control custom-food-name" placeholder="Food or dish name (e.g. Mediterranean Tuna Salad Bowl)">
+                <input type="number" class="form-control custom-food-cals" placeholder="Calories (kcal, e.g. 450)" min="0">
+                <input type="text" class="form-control custom-food-portion" placeholder="Portion description (e.g. 1 bowl with olive oil)">
+              </div>
+              <div class="flex justify-end gap-2" style="margin-top: 10px;">
+                <button type="button" class="btn btn-ghost btn-sm btn-cancel-custom" data-category="lunch">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm btn-save-custom" data-category="lunch">Add Custom Item</button>
+              </div>
+            </div>
+
+            <!-- Selected Food Items Container -->
+            <div class="food-items-container" id="itemsList_lunch">
+              <div class="empty-meal-state">No lunch items selected yet. Choose from database foods above or add a custom recommendation.</div>
+            </div>
+          </div>
+
+          <!-- DINNER CATEGORY -->
+          <div class="builder-section-card meal-category-card" id="categoryCard_dinner" data-category="dinner">
+            <div class="category-header">
+              <div class="category-title">
+                <span style="font-size: 1.35rem;">🍲</span>
+                <span>Dinner Items</span>
+              </div>
+              <div class="category-badge-group">
+                <span class="macro-pill cal" id="calBadge_dinner">0 kcal</span>
+                <span class="macro-pill protein" id="protBadge_dinner">P: 0g</span>
+                <span class="macro-pill carbs" id="carbBadge_dinner">C: 0g</span>
+                <span class="macro-pill fat" id="fatBadge_dinner">F: 0g</span>
+              </div>
+            </div>
+
+            <!-- Database Food Selector Row -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
+              <div style="flex: 1; min-width: 260px;">
+                <select class="form-control food-picker-select" id="foodPicker_dinner" data-category="dinner">
+                  <option value="">-- Choose Stored Food from Database (Dinner) --</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm btn-add-food" data-category="dinner" style="white-space: nowrap;">
+                ➕ Add Food
+              </button>
+              <button type="button" class="btn btn-outline btn-sm btn-toggle-custom" data-category="dinner" style="white-space: nowrap;">
+                ✏️ Custom Item
+              </button>
+            </div>
+
+            <!-- Custom Food Builder Box -->
+            <div class="custom-food-box" id="customBox_dinner">
+              <strong style="display: block; font-size: 0.85rem; color: #334155; margin-bottom: 10px;">Add Custom Food / Recipe to Dinner:</strong>
+              <div class="grid grid-3 gap-3">
+                <input type="text" class="form-control custom-food-name" placeholder="Food or dish name (e.g. Baked Herb Salmon with Steamed Broccoli)">
+                <input type="number" class="form-control custom-food-cals" placeholder="Calories (kcal, e.g. 520)" min="0">
+                <input type="text" class="form-control custom-food-portion" placeholder="Portion description (e.g. 200g salmon + 1 cup veggies)">
+              </div>
+              <div class="flex justify-end gap-2" style="margin-top: 10px;">
+                <button type="button" class="btn btn-ghost btn-sm btn-cancel-custom" data-category="dinner">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm btn-save-custom" data-category="dinner">Add Custom Item</button>
+              </div>
+            </div>
+
+            <!-- Selected Food Items Container -->
+            <div class="food-items-container" id="itemsList_dinner">
+              <div class="empty-meal-state">No dinner items selected yet. Choose from database foods above or add a custom recommendation.</div>
+            </div>
+          </div>
+
+          <!-- SNACKS CATEGORY -->
+          <div class="builder-section-card meal-category-card" id="categoryCard_snacks" data-category="snacks">
+            <div class="category-header">
+              <div class="category-title">
+                <span style="font-size: 1.35rem;">🍎</span>
+                <span>Healthy Snacks</span>
+              </div>
+              <div class="category-badge-group">
+                <span class="macro-pill cal" id="calBadge_snacks">0 kcal</span>
+                <span class="macro-pill protein" id="protBadge_snacks">P: 0g</span>
+                <span class="macro-pill carbs" id="carbBadge_snacks">C: 0g</span>
+                <span class="macro-pill fat" id="fatBadge_snacks">F: 0g</span>
+              </div>
+            </div>
+
+            <!-- Database Food Selector Row -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px;">
+              <div style="flex: 1; min-width: 260px;">
+                <select class="form-control food-picker-select" id="foodPicker_snacks" data-category="snacks">
+                  <option value="">-- Choose Stored Food from Database (Snacks) --</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm btn-add-food" data-category="snacks" style="white-space: nowrap;">
+                ➕ Add Food
+              </button>
+              <button type="button" class="btn btn-outline btn-sm btn-toggle-custom" data-category="snacks" style="white-space: nowrap;">
+                ✏️ Custom Item
+              </button>
+            </div>
+
+            <!-- Custom Food Builder Box -->
+            <div class="custom-food-box" id="customBox_snacks">
+              <strong style="display: block; font-size: 0.85rem; color: #334155; margin-bottom: 10px;">Add Custom Snack / Drink:</strong>
+              <div class="grid grid-3 gap-3">
+                <input type="text" class="form-control custom-food-name" placeholder="Snack name (e.g. Raw Almonds & Dark Chocolate)">
+                <input type="number" class="form-control custom-food-cals" placeholder="Calories (kcal, e.g. 180)" min="0">
+                <input type="text" class="form-control custom-food-portion" placeholder="Portion description (e.g. 20g almonds + 1 square)">
+              </div>
+              <div class="flex justify-end gap-2" style="margin-top: 10px;">
+                <button type="button" class="btn btn-ghost btn-sm btn-cancel-custom" data-category="snacks">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm btn-save-custom" data-category="snacks">Add Custom Item</button>
+              </div>
+            </div>
+
+            <!-- Selected Food Items Container -->
+            <div class="food-items-container" id="itemsList_snacks">
+              <div class="empty-meal-state">No snacks selected yet. Choose from database snacks above or add a custom recommendation.</div>
+            </div>
+          </div>
+
+          <!-- GRAND TOTAL PLAN NUTRITION SUMMARY -->
+          <div class="grand-summary-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+              <div>
+                <strong style="font-size: 1.15rem; color: #f8fafc; display: block;">Total Plan Calorie & Macronutrient Summary</strong>
+                <span style="font-size: 0.875rem; color: #94a3b8;">Real-time aggregation from selected database foods and custom items</span>
+              </div>
+              <button type="button" id="btnSyncTargetCals" class="btn btn-outline btn-sm" style="color: #6ee7b7; border-color: #6ee7b7; background: transparent;">
+                ⚡ Sync Target Calories with Plan Total
+              </button>
+            </div>
+
+            <div class="grid grid-4 gap-4">
+              <div class="summary-metric">
+                <div class="summary-metric-value" id="summaryTotalCals" style="color: #60a5fa;">0</div>
+                <div class="summary-metric-label">Total Plan Calories</div>
+              </div>
+              <div class="summary-metric">
+                <div class="summary-metric-value" id="summaryTotalProtein" style="color: #34d399;">0g</div>
+                <div class="summary-metric-label">Total Protein</div>
+              </div>
+              <div class="summary-metric">
+                <div class="summary-metric-value" id="summaryTotalCarbs" style="color: #fbbf24;">0g</div>
+                <div class="summary-metric-label">Total Carbohydrates</div>
+              </div>
+              <div class="summary-metric">
+                <div class="summary-metric-value" id="summaryTotalFat" style="color: #f87171;">0g</div>
+                <div class="summary-metric-label">Total Healthy Fat</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBMIT ACTION BUTTON -->
+          <div style="display: flex; justify-content: flex-end; gap: 16px; align-items: center;">
+            <a href="patients.html" class="btn btn-outline">Cancel</a>
+            <button type="submit" id="submitMealPlanBtn" class="btn btn-primary btn-lg" style="min-width: 260px; font-weight: 700;">
+              Publish & Assign Meal Plan &rarr;
             </button>
-          </form>
-        </div>
+          </div>
+
+        </form>
 
       </main>
     </div>
