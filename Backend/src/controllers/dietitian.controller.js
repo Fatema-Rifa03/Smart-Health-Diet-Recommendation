@@ -375,17 +375,104 @@ export const getAssignedPatients = async (req, res) => {
         );
 
         const patients = result.rows;
+        const patientIds = patients.map(p => p.id);
+        
+        let plansMap = {};
+        let logsMap = {};
 
-        // Calculate BMI for each patient
+        if (patientIds.length > 0) {
+            // Get active meal plans for these patients
+            const plansRes = await pool.query(
+                `SELECT DISTINCT ON (patient_id)
+                    id, patient_id, title, target_calories, created_at
+                 FROM meal_plans
+                 WHERE patient_id = ANY($1::uuid[]) AND status = 'active'
+                 ORDER BY patient_id, created_at DESC`,
+                [patientIds]
+            );
+            plansRes.rows.forEach(pl => {
+                plansMap[pl.patient_id] = pl;
+            });
+
+            // Get today's meal logs for these patients
+            const logsRes = await pool.query(
+                `SELECT id, user_id, category, meal_name, calories, is_extra, notes, logged_at
+                 FROM meal_logs
+                 WHERE user_id = ANY($1::uuid[]) AND logged_for = CURRENT_DATE
+                 ORDER BY logged_at DESC`,
+                [patientIds]
+            );
+            logsRes.rows.forEach(log => {
+                if (!logsMap[log.user_id]) logsMap[log.user_id] = [];
+                logsMap[log.user_id].push(log);
+            });
+        }
+
+        // Calculate BMI and Diet Adherence for each patient
         const formatted = patients.map(p => {
             let bmi = "N/A";
             if (p.height && p.weight) {
                 const heightM = p.height / 100;
                 bmi = (p.weight / (heightM * heightM)).toFixed(1);
             }
+
+            const activePlan = plansMap[p.id] || null;
+            const targetCalories = activePlan?.target_calories || p.dailyCalorieLimit || 2000;
+            const todayLogs = logsMap[p.id] || [];
+
+            let regularCalories = 0;
+            let extraCalories = 0;
+            const extraLogs = [];
+
+            for (const log of todayLogs) {
+                const cal = parseInt(log.calories, 10) || 0;
+                if (log.is_extra) {
+                    extraCalories += cal;
+                    extraLogs.push(log);
+                } else {
+                    regularCalories += cal;
+                }
+            }
+            const totalCalories = regularCalories + extraCalories;
+
+            let adherenceStatus = 'maintained';
+            let adherenceBadge = 'Maintaining Diet';
+            let adherenceType = 'success';
+
+            if (todayLogs.length === 0) {
+                adherenceStatus = 'no_logs';
+                adherenceBadge = 'No Logs Today';
+                adherenceType = 'muted';
+            } else if (extraLogs.length > 0 || extraCalories > 0) {
+                adherenceStatus = 'extra_reported';
+                adherenceBadge = `Extra Food Reported (+${extraCalories} kcal)`;
+                adherenceType = 'warning';
+            } else if (totalCalories > targetCalories + 50) {
+                adherenceStatus = 'exceeded';
+                adherenceBadge = `Exceeded (${totalCalories - targetCalories} kcal over)`;
+                adherenceType = 'danger';
+            } else {
+                adherenceStatus = 'maintained';
+                adherenceBadge = 'On Track (Maintained)';
+                adherenceType = 'success';
+            }
+
             return {
                 ...p,
-                bmi
+                bmi,
+                activePlanTitle: activePlan ? activePlan.title : "No Active Plan",
+                activePlanId: activePlan ? activePlan.id : null,
+                targetCalories,
+                todayTotalCalories: totalCalories,
+                todayRegularCalories: regularCalories,
+                todayExtraCalories: extraCalories,
+                todayLogsCount: todayLogs.length,
+                extraLogsCount: extraLogs.length,
+                extraLogs,
+                todayLogs,
+                adherenceStatus,
+                adherenceBadge,
+                adherenceType
             };
         });
 
@@ -398,6 +485,83 @@ export const getAssignedPatients = async (req, res) => {
     } catch (error) {
         console.error("getAssignedPatients error:", error);
         return res.status(500).json({ success: false, message: "Failed to load patient records" });
+    }
+};
+
+export const getPatientAdherenceDetails = async (req, res) => {
+    try {
+        const dietitianId = req.account.id;
+        const { patientId } = req.params;
+
+        // Verify patient is assigned to this dietitian
+        const requestCheck = await pool.query(
+            `SELECT id FROM guidance_requests WHERE dietitian_id = $1 AND patient_id = $2 AND status = 'accepted'`,
+            [dietitianId, patientId]
+        );
+        if (requestCheck.rows.length === 0) {
+            return res.status(403).json({ success: false, message: "Patient is not assigned to your account" });
+        }
+
+        // Fetch patient info
+        const patientRes = await pool.query(
+            `SELECT p.id, p.full_name, p.email, up.age, up.gender, up.height_cm, up.current_weight_kg, up.primary_goal, up.daily_calorie_target
+             FROM accounts p
+             LEFT JOIN user_profiles up ON up.account_id = p.id
+             WHERE p.id = $1`,
+            [patientId]
+        );
+        const patient = patientRes.rows[0];
+
+        // Fetch active meal plan
+        const planRes = await pool.query(
+            `SELECT mp.id, mp.title, mp.target_calories, mp.start_date, mp.end_date, mp.status,
+                    COALESCE(json_agg(
+                        json_build_object(
+                            'id', mpi.id,
+                            'category', mpi.category,
+                            'recommendation', mpi.recommendation,
+                            'sort_order', mpi.sort_order
+                        ) ORDER BY mpi.sort_order
+                    ) FILTER (WHERE mpi.id IS NOT NULL), '[]') AS items
+             FROM meal_plans mp
+             LEFT JOIN meal_plan_items mpi ON mpi.meal_plan_id = mp.id
+             WHERE mp.patient_id = $1 AND mp.status = 'active'
+             GROUP BY mp.id
+             ORDER BY mp.created_at DESC
+             LIMIT 1`,
+            [patientId]
+        );
+        const activePlan = planRes.rows[0] || null;
+
+        // Fetch today's meal logs
+        const todayLogsRes = await pool.query(
+            `SELECT id, category, meal_name, calories, is_extra, notes, logged_at
+             FROM meal_logs
+             WHERE user_id = $1 AND logged_for = CURRENT_DATE
+             ORDER BY logged_at DESC`,
+            [patientId]
+        );
+        const todayLogs = todayLogsRes.rows;
+
+        // Fetch past 7 days meal logs
+        const recentLogsRes = await pool.query(
+            `SELECT id, logged_for, category, meal_name, calories, is_extra, notes, logged_at
+             FROM meal_logs
+             WHERE user_id = $1 AND logged_for >= CURRENT_DATE - INTERVAL '7 days'
+             ORDER BY logged_for DESC, logged_at DESC`,
+            [patientId]
+        );
+
+        return res.status(200).json({
+            success: true,
+            patient,
+            activePlan,
+            todayLogs,
+            recentLogs: recentLogsRes.rows
+        });
+    } catch (error) {
+        console.error("getPatientAdherenceDetails error:", error);
+        return res.status(500).json({ success: false, message: "Failed to load patient adherence details" });
     }
 };
 
@@ -527,8 +691,87 @@ export const updateGuidanceRequestStatus = async (req, res) => {
 };
 
 // ==========================================
-// 5. CREATE CUSTOM MEAL PLANS
+// 5. CREATE & MANAGE CUSTOM MEAL PLANS
 // ==========================================
+
+export const getFoodItems = async (req, res) => {
+    try {
+        const { category, search } = req.query;
+        let query = `
+            SELECT
+                id,
+                name,
+                category,
+                calories,
+                protein_g AS protein,
+                carbohydrates_g AS carbs,
+                fat_g AS fat,
+                portion_description AS portion
+            FROM food_items
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (category && ['breakfast', 'lunch', 'dinner', 'snacks'].includes(category.toLowerCase())) {
+            params.push(category.toLowerCase());
+            query += ` AND category = $${params.length}`;
+        }
+
+        if (search && search.trim()) {
+            params.push(`%${search.trim().toLowerCase()}%`);
+            query += ` AND lower(name) LIKE $${params.length}`;
+        }
+
+        query += " ORDER BY category ASC, name ASC";
+
+        const result = await pool.query(query, params);
+
+        return res.status(200).json({
+            success: true,
+            foods: result.rows
+        });
+    } catch (error) {
+        console.error("getFoodItems error:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch food items catalog" });
+    }
+};
+
+export const getPlanTitlesAndTemplates = async (req, res) => {
+    try {
+        const [dbTitlesRes, goalsRes] = await Promise.all([
+            pool.query("SELECT DISTINCT title FROM meal_plans WHERE title IS NOT NULL AND TRIM(title) != '' ORDER BY title ASC"),
+            pool.query("SELECT DISTINCT primary_goal FROM user_profiles WHERE primary_goal IS NOT NULL AND TRIM(primary_goal) != '' ORDER BY primary_goal ASC")
+        ]);
+
+        const clinicalTemplates = [
+            { title: "Weight Loss & Calorie Deficit Plan", defaultCalories: 1600 },
+            { title: "High-Protein Muscle Building Plan", defaultCalories: 2400 },
+            { title: "Cardiovascular & Heart-Healthy Plan", defaultCalories: 1900 },
+            { title: "Diabetic Friendly & Low-Glycemic Plan", defaultCalories: 1700 },
+            { title: "Clean Eating Balanced Maintenance Plan", defaultCalories: 2000 },
+            { title: "Keto & Low-Carbohydrate Metabolic Plan", defaultCalories: 1800 },
+            { title: "Hypertension DASH Nutritional Protocol", defaultCalories: 1850 }
+        ];
+
+        const titlesFromDb = dbTitlesRes.rows.map(r => r.title);
+        const goalTitles = goalsRes.rows.map(r => `${r.primary_goal} Targeted Plan`);
+
+        const allUniqueTitles = Array.from(new Set([
+            ...clinicalTemplates.map(t => t.title),
+            ...titlesFromDb,
+            ...goalTitles
+        ]));
+
+        return res.status(200).json({
+            success: true,
+            titles: allUniqueTitles,
+            templates: clinicalTemplates
+        });
+    } catch (error) {
+        console.error("getPlanTitlesAndTemplates error:", error);
+        return res.status(500).json({ success: false, message: "Failed to load plan titles" });
+    }
+};
 
 export const createDietitianMealPlan = async (req, res) => {
     const client = await pool.connect();
@@ -549,7 +792,7 @@ export const createDietitianMealPlan = async (req, res) => {
             items
         } = req.body;
 
-        if (!title) {
+        if (!title || !title.trim()) {
             await client.query("ROLLBACK");
             return res.status(400).json({ success: false, message: "Plan title is required" });
         }
@@ -598,28 +841,37 @@ export const createDietitianMealPlan = async (req, res) => {
             `INSERT INTO meal_plans (patient_id, dietitian_id, title, target_calories, status, start_date, end_date)
              VALUES ($1, $2, $3, $4, 'active', COALESCE($5, CURRENT_DATE), $6)
              RETURNING id, title, target_calories, status, created_at`,
-            [resolvedPatientId, dietitianId, title, caloriesVal, start_date || null, end_date || null]
+            [resolvedPatientId, dietitianId, title.trim(), caloriesVal, start_date || null, end_date || null]
         );
 
         const newPlanId = planRes.rows[0].id;
 
-        // Build item array
-        const planItems = items || [];
-        if (breakfast) planItems.push({ category: "breakfast", recommendation: breakfast, sort_order: 1 });
-        if (lunch) planItems.push({ category: "lunch", recommendation: lunch, sort_order: 2 });
-        if (dinner) planItems.push({ category: "dinner", recommendation: dinner, sort_order: 3 });
+        // Build item array with sequential sort_order per category
+        const planItems = [];
+        if (Array.isArray(items) && items.length > 0) {
+            const orderCounters = { breakfast: 0, lunch: 0, dinner: 0, snacks: 0 };
+            for (const item of items) {
+                const cat = (item.category || "breakfast").toLowerCase();
+                const validCat = ["breakfast", "lunch", "dinner", "snacks"].includes(cat) ? cat : "breakfast";
+                const rec = item.recommendation || item.text || item.name || "Nutritious balanced meal";
+                const order = item.sort_order !== undefined && typeof item.sort_order === 'number'
+                    ? item.sort_order
+                    : (orderCounters[validCat]++);
+                planItems.push({ category: validCat, recommendation: rec, sort_order: order });
+            }
+        } else {
+            if (breakfast) planItems.push({ category: "breakfast", recommendation: breakfast, sort_order: 0 });
+            if (lunch) planItems.push({ category: "lunch", recommendation: lunch, sort_order: 0 });
+            if (dinner) planItems.push({ category: "dinner", recommendation: dinner, sort_order: 0 });
+        }
 
         for (const item of planItems) {
-            const cat = (item.category || "breakfast").toLowerCase();
-            const rec = item.recommendation || item.text || "Nutritious balanced meal";
-            const order = item.sort_order || 0;
-
             await client.query(
                 `INSERT INTO meal_plan_items (meal_plan_id, category, recommendation, sort_order)
                  VALUES ($1, $2::meal_category, $3, $4)
                  ON CONFLICT (meal_plan_id, category, sort_order) DO UPDATE
                  SET recommendation = EXCLUDED.recommendation`,
-                [newPlanId, cat, rec, order]
+                [newPlanId, item.category, item.recommendation, item.sort_order]
             );
         }
 
@@ -627,8 +879,9 @@ export const createDietitianMealPlan = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: `Meal plan "${title}" created and assigned to patient successfully!`,
-            plan: planRes.rows[0]
+            message: `Meal plan "${title.trim()}" created and assigned to patient successfully!`,
+            plan: planRes.rows[0],
+            itemsCount: planItems.length
         });
     } catch (error) {
         await client.query("ROLLBACK");

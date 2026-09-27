@@ -9,6 +9,25 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.user-profile-menu .font-bold.text-sm').forEach(element => {
       element.textContent = displayName;
     });
+    if (currentUser.avatar_url || currentUser.avatar) {
+      const avatarSrc = currentUser.avatar_url || currentUser.avatar;
+      document.querySelectorAll('.user-profile-menu .user-avatar').forEach(element => {
+        element.src = avatarSrc;
+      });
+    }
+  }
+
+  // Make user-profile-menu clickable to open profile page
+  const profileMenu = document.querySelector('.user-profile-menu');
+  if (profileMenu && !profileMenu.getAttribute('onclick') && profileMenu.tagName !== 'A') {
+    const isUserArea = window.location.pathname.includes('/user/');
+    const isDietitianArea = window.location.pathname.includes('/dietitian/');
+    profileMenu.style.cursor = 'pointer';
+    profileMenu.title = 'Manage Profile';
+    profileMenu.addEventListener('click', () => {
+      if (isUserArea) window.location.href = 'profile.html';
+      else if (isDietitianArea) window.location.href = 'profile.html';
+    });
   }
 
   // Keep navigation state and mobile behavior consistent across dashboard pages.

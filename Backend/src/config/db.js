@@ -20,4 +20,11 @@ pool.on("error", (error) => {
     console.error("Unexpected PostgreSQL error:", error);
 });
 
+// Auto-migration: Ensure user_profiles has avatar_url column
+pool.query(`
+    ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+`).catch(err => {
+    console.error("Migration error (user_profiles.avatar_url):", err.message);
+});
+
 export default pool;

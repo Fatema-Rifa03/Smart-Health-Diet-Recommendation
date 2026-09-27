@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile & Account Settings - Smart Health System</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <style>
+    .avatar-preview-box {
+      width: 110px;
+      height: 110px;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+      border: 4px solid var(--primary-light);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .avatar-preview-box:hover {
+      transform: scale(1.03);
+      border-color: var(--primary);
+    }
+    .preset-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .preset-avatar:hover {
+      transform: scale(1.1);
+      border-color: var(--primary-light);
+    }
+    .preset-avatar.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+      transform: scale(1.08);
+    }
+    .hero-profile-banner {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #f0fdf4 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .avatar-upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      background-color: var(--bg-page);
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .avatar-upload-zone:hover {
+      border-color: var(--primary);
+      background-color: #f0fdf4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-brand">
+          <img src="../assets/images/logo.jpg" alt="Logo">
+          <div>
+            <span class="sidebar-brand-text">Smart Health</span>
+            <span class="text-xs text-muted block font-medium">& Diet System</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <a href="dashboard.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dashboard Overview
+          </a>
+          <a href="profile.html" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            My Profile &amp; Account
+          </a>
+          <a href="health-profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            Health Profile &amp; Goals
+          </a>
+          <a href="meal-logger.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Meal Logger &amp; Calories
+          </a>
+          <a href="water-tracker.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            Water Intake Tracker
+          </a>
+          <a href="sleep-tracker.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Sleep Tracker
+          </a>
+          <a href="weight-progress.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Weight Progress
+          </a>
+          <a href="dietitian-plans.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Dietitian Meal Plans
+          </a>
+          <a href="find-dietitian.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Find a Dietitian
+          </a>
+          <a href="calorie-reports.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Calorie Reports
+          </a>
+          <a href="chat.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Dietitian Chat
+          </a>
+        </nav>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+        <a href="../auth/login.html" class="sidebar-link text-danger" onclick="SHD_UI.clearSession()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="9"/></svg>
+          Sign Out
+        </a>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      
+      <!-- Top Header -->
+      <header class="top-header">
+        <h1 class="text-xl font-bold">My Profile &amp; Account Settings</h1>
+        <div class="user-profile-menu">
+          <span class="font-bold text-sm">User</span>
+          <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+
+        <!-- Notification Banner -->
+        <div id="statusAlert" style="display: none; margin-bottom: 20px;"></div>
+
+        <!-- Hero Profile Banner -->
+        <div class="hero-profile-banner">
+          <div class="flex items-center gap-5">
+            <div style="position: relative;">
+              <img id="heroAvatar" src="../assets/images/images.jpeg" alt="User Avatar" class="avatar-preview-box">
+              <span style="position: absolute; bottom: 4px; right: 4px; background: #10b981; border: 2px solid white; width: 18px; height: 18px; border-radius: 50%;" title="Active Account"></span>
+            </div>
+            <div>
+              <div class="flex items-center gap-3">
+                <h2 id="heroFullName" style="font-size: 1.5rem; font-weight: 800; color: #065f46; margin: 0;">User Profile</h2>
+                <span class="badge badge-success" id="heroRoleBadge" style="font-size: 0.75rem;">Verified Member</span>
+              </div>
+              <p id="heroEmail" class="text-sm" style="color: #047857; font-weight: 500; margin: 4px 0 8px;">user@example.com</p>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                <span id="heroMemberSince">Member since 2026</span>
+                <span>&bull;</span>
+                <span id="heroGoalBadge" class="badge badge-secondary" style="font-size: 0.7rem;">Healthy Living</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions / Status Pill -->
+          <div class="flex gap-2">
+            <a href="health-profile.html" class="btn btn-outline btn-sm" style="background: white; border-color: #059669; color: #065f46;">
+              📊 Health Biometrics
+            </a>
+            <a href="dietitian-plans.html" class="btn btn-primary btn-sm" style="background: #10b981; border-color: #10b981;">
+              🥗 Dietitian Plans
+            </a>
+          </div>
+        </div>
+
+        <div class="grid grid-3 gap-6">
+
+          <!-- Left Column (Span 2): Profile & Avatar Editor -->
+          <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- Avatar Studio Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Profile Avatar &amp; Photo Studio</h2>
+                  <p class="text-xs text-muted" style="margin-top: 4px;">
+                    Personalize your presence. Upload a custom photo from your device, pick a curated avatar preset, or enter an image link.
+                  </p>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline" id="btnResetAvatar">Reset Default</button>
+              </div>
+
+              <div class="flex items-center gap-6" style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                <div style="text-align: center;">
+                  <img id="avatarPreviewCurrent" src="../assets/images/images.jpeg" alt="Current Avatar" class="avatar-preview-box">
+                  <span class="text-xs text-muted block" style="margin-top: 6px; font-weight: 600;">Active Preview</span>
+                </div>
+                <div style="flex: 1;">
+                  <h4 style="margin: 0 0 6px; font-size: 1rem; color: var(--text-main);">Upload from Device</h4>
+                  <p class="text-xs text-muted" style="margin: 0 0 12px;">Supports JPG, PNG, WEBP, GIF (Max 2MB). Automatically optimized.</p>
+                  
+                  <div class="avatar-upload-zone" onclick="document.getElementById('avatarFileInput').click()">
+                    <span style="font-size: 1.5rem; display: block; margin-bottom: 4px;">📷</span>
+                    <strong style="font-size: 0.875rem; color: var(--primary);">Click to Browse Image</strong>
+                    <span class="text-xs text-muted block">or drag and drop your file here</span>
+                    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Curated Presets Selection -->
+              <div style="margin-bottom: 20px;">
+                <label class="form-label" style="margin-bottom: 10px; display: block; font-weight: 600;">
+                  Or Choose from Curated Avatar Presets:
+                </label>
+                <div class="flex gap-3" style="flex-wrap: wrap;" id="presetAvatarsContainer">
+                  <!-- Dynamically populated presets -->
+                </div>
+              </div>
+
+              <!-- Direct URL Option -->
+              <div>
+                <label class="form-label" for="customAvatarUrl">Or Use Custom Web Image URL</label>
+                <div class="flex gap-2">
+                  <input type="url" id="customAvatarUrl" class="form-control" placeholder="https://images.unsplash.com/photo-..." style="font-size: 0.85rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btnApplyUrl" style="white-space: nowrap;">Apply Link</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Personal Information Form Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Personal Account Details</h2>
+                  <p class="text-xs text-muted" style="margin-top: 4px;">Update your basic profile information displayed across the clinic platform.</p>
+                </div>
+              </div>
+
+              <form id="personalInfoForm">
+                <div class="grid grid-2 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="profileFullName">Full Name</label>
+                    <input type="text" id="profileFullName" class="form-control" placeholder="Your Full Name" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="profileEmail">Email Address</label>
+                    <input type="email" id="profileEmail" class="form-control" disabled style="background-color: var(--bg-surface); opacity: 0.75;" title="Registered email address cannot be changed directly">
+                    <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Primary login identity &bull; Verified</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-2 gap-4" style="margin-top: 8px;">
+                  <div class="form-group">
+                    <label class="form-label" for="profileRole">Account Role</label>
+                    <input type="text" id="profileRole" class="form-control" value="Patient / User" disabled style="background-color: var(--bg-surface); opacity: 0.75;">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="profileJoined">Joined Date</label>
+                    <input type="text" id="profileJoined" class="form-control" value="2026" disabled style="background-color: var(--bg-surface); opacity: 0.75;">
+                  </div>
+                </div>
+
+                <div class="flex justify-end" style="margin-top: 16px;">
+                  <button type="submit" class="btn btn-primary" id="btnSavePersonalInfo">
+                    Save Profile Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Password & Security Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Security &amp; Password Update</h2>
+                  <p class="text-xs text-muted" style="margin-top: 4px;">Keep your account secure by using a strong, unique password.</p>
+                </div>
+              </div>
+
+              <form id="passwordForm">
+                <div class="form-group">
+                  <label class="form-label" for="currentPassword">Current Password</label>
+                  <input type="password" id="currentPassword" class="form-control" placeholder="Enter your current password" required>
+                </div>
+
+                <div class="grid grid-2 gap-4">
+                  <div class="form-group">
+                    <label class="form-label" for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" class="form-control" placeholder="Min. 6 characters" minlength="6" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="Re-enter new password" minlength="6" required>
+                  </div>
+                </div>
+
+                <div class="flex justify-end" style="margin-top: 16px;">
+                  <button type="submit" class="btn btn-secondary" id="btnUpdatePassword">
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+
+          <!-- Right Column (Span 1): Health Snapshot & Care Relationship -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- Health Biometrics Snapshot Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" style="font-size: 1.05rem;">Health &amp; Goals Snapshot</h3>
+                <a href="health-profile.html" class="text-xs text-primary font-bold">Edit Full &rarr;</a>
+              </div>
+
+              <div style="margin-bottom: 16px; text-align: center; padding: 14px; background: var(--bg-page); border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <span class="text-xs text-muted uppercase font-bold block">Current BMI</span>
+                <span id="sideBmiVal" style="font-size: 2.2rem; font-weight: 800; color: var(--primary); display: block; margin: 4px 0;">--</span>
+                <span id="sideBmiBadge" class="badge badge-success" style="font-size: 0.75rem;">Normal Weight</span>
+              </div>
+
+              <div class="flex flex-col gap-3" style="font-size: 0.875rem;">
+                <div class="flex justify-between items-center" style="padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                  <span class="text-muted">Weight / Target:</span>
+                  <strong><span id="sideWeight">--</span> kg / <span id="sideTargetWeight">--</span> kg</strong>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                  <span class="text-muted">Height:</span>
+                  <strong><span id="sideHeight">--</span> cm</strong>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                  <span class="text-muted">Primary Goal:</span>
+                  <span id="sideGoal" style="font-weight: 600; color: var(--text-main); max-width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">--</span>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                  <span class="text-muted">Daily Calorie Target:</span>
+                  <strong class="text-accent"><span id="sideCalories">2000</span> kcal</strong>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                  <span class="text-muted">Daily Water Target:</span>
+                  <strong><span id="sideWater">2.5</span> L</strong>
+                </div>
+
+                <div class="flex justify-between items-center">
+                  <span class="text-muted">Sleep Target:</span>
+                  <strong><span id="sideSleep">8.0</span> hrs</strong>
+                </div>
+              </div>
+
+              <div style="margin-top: 16px;">
+                <a href="health-profile.html" class="btn btn-outline btn-full btn-sm">
+                  Modify Biometrics &amp; Targets
+                </a>
+              </div>
+            </div>
+
+            <!-- Assigned Care Relationship Card -->
+            <div class="card" id="careDietitianCard">
+              <div class="card-header">
+                <h3 class="card-title" style="font-size: 1.05rem;">Assigned Dietitian</h3>
+                <span class="badge badge-secondary" id="careStatusBadge" style="font-size: 0.7rem;">Checking...</span>
+              </div>
+
+              <div id="careDietitianContent">
+                <p class="text-xs text-muted" style="margin: 0 0 12px;">Loading care details...</p>
+              </div>
+            </div>
+
+            <!-- Account Status Card -->
+            <div class="card" style="background: var(--bg-page); border: 1px solid var(--border);">
+              <span class="text-xs text-muted uppercase font-bold block" style="margin-bottom: 8px;">System Security</span>
+              <p class="text-xs text-muted" style="line-height: 1.6; margin: 0 0 12px;">
+                Your health data and dietary logs are strictly confidential, safeguarded under clinical privacy policies, and only accessible to you and your assigned clinical care team.
+              </p>
+              <div class="flex items-center gap-2 text-xs" style="color: #059669; font-weight: 600;">
+                <span>🔒</span>
+                <span>Active 256-bit Session Encryption</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/js/main.js"></script>
+  <script>
+    // Curated Avatar Preset Gallery (clean, diverse portraits)
+    const PRESET_AVATARS = [
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      '../assets/images/images.jpeg'
+    ];
+
+    let currentAvatarUrl = '../assets/images/images.jpeg';
+    let profileData = null;
+
+    function showAlert(message, type = 'success') {
+      const alertBox = document.getElementById('statusAlert');
+      if (!alertBox) return;
+      alertBox.className = `alert alert-${type}`;
+      alertBox.textContent = message;
+      alertBox.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        alertBox.style.display = 'none';
+      }, 5000);
+    }
+
+    function renderPresetAvatars() {
+      const container = document.getElementById('presetAvatarsContainer');
+      if (!container) return;
+      container.innerHTML = PRESET_AVATARS.map((url, idx) => `
+        <img 
+          src="${url}" 
+          alt="Preset ${idx + 1}" 
+          class="preset-avatar ${url === currentAvatarUrl ? 'selected' : ''}"
+          onclick="selectPresetAvatar('${url}', this)"
+          title="Select Avatar Preset ${idx + 1}"
+        >
+      `).join('');
+    }
+
+    function setAvatarPreview(url) {
+      currentAvatarUrl = url || '../assets/images/images.jpeg';
+      document.getElementById('avatarPreviewCurrent').src = currentAvatarUrl;
+      document.getElementById('heroAvatar').src = currentAvatarUrl;
+      
+      // Update top header avatar
+      document.querySelectorAll('.user-profile-menu .user-avatar').forEach(img => {
+        img.src = currentAvatarUrl;
+      });
+
+      // Update preset selection highlights
+      document.querySelectorAll('.preset-avatar').forEach(img => {
+        img.classList.toggle('selected', img.src === currentAvatarUrl || img.getAttribute('src') === currentAvatarUrl);
+      });
+    }
+
+    function selectPresetAvatar(url, element) {
+      setAvatarPreview(url);
+      document.getElementById('customAvatarUrl').value = '';
+    }
+
+    // Handle device file upload with instant client preview & compression
+    document.getElementById('avatarFileInput').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Please choose a valid image file (JPG, PNG, WEBP).');
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Image file is too large. Please select an image under 2MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        // Compress using Canvas to maintain reasonable payload size
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          const maxDim = 300;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxDim) {
+              height *= maxDim / width;
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width *= maxDim / height;
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setAvatarPreview(dataUrl);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Handle custom URL input
+    document.getElementById('btnApplyUrl').addEventListener('click', function () {
+      const url = document.getElementById('customAvatarUrl').value.trim();
+      if (!url) {
+        alert('Please enter a valid image URL');
+        return;
+      }
+      setAvatarPreview(url);
+    });
+
+    // Reset Avatar to Default
+    document.getElementById('btnResetAvatar').addEventListener('click', function () {
+      setAvatarPreview('../assets/images/images.jpeg');
+      document.getElementById('customAvatarUrl').value = '';
+    });
+
+    // Calculate BMI helper
+    function updateBmiBadge(bmi) {
+      const badge = document.getElementById('sideBmiBadge');
+      if (!badge) return;
+      if (bmi < 18.5) {
+        badge.className = 'badge badge-warning';
+        badge.textContent = 'Underweight';
+      } else if (bmi <= 24.9) {
+        badge.className = 'badge badge-success';
+        badge.textContent = 'Normal Weight';
+      } else if (bmi <= 29.9) {
+        badge.className = 'badge badge-warning';
+        badge.textContent = 'Overweight';
+      } else {
+        badge.className = 'badge badge-danger';
+        badge.textContent = 'Obese';
+      }
+    }
+
+    // Load Profile Data from Backend
+    async function loadUserProfile() {
+      try {
+        const [profileRes, requestsRes] = await Promise.all([
+          SHD_UI.request('/profile'),
+          SHD_UI.request('/user/guidance-requests').catch(() => ({ requests: [] }))
+        ]);
+
+        profileData = profileRes.profile || {};
+        const user = profileRes.user || JSON.parse(localStorage.getItem('shd_current_user') || '{}');
+
+        // Populate Hero
+        const fullName = profileData.full_name || user.full_name || 'Health Member';
+        const email = profileData.email || user.email || 'user@example.com';
+        document.getElementById('heroFullName').textContent = fullName;
+        document.getElementById('heroEmail').textContent = email;
+        
+        if (profileData.primary_goal) {
+          document.getElementById('heroGoalBadge').textContent = profileData.primary_goal;
+        }
+
+        if (profileData.joined_at || user.joined_at) {
+          const date = new Date(profileData.joined_at || user.joined_at);
+          document.getElementById('heroMemberSince').textContent = `Member since ${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+          document.getElementById('profileJoined').value = date.toLocaleDateString();
+        }
+
+        // Avatar
+        const avatar = profileData.avatar_url || user.avatar_url || user.avatar || '../assets/images/images.jpeg';
+        setAvatarPreview(avatar);
+        renderPresetAvatars();
+
+        // Personal Info Form
+        document.getElementById('profileFullName').value = fullName;
+        document.getElementById('profileEmail').value = email;
+        document.getElementById('profileRole').value = (profileData.role || user.role || 'user').toUpperCase();
+
+        // Biometrics Snapshot
+        const h = parseFloat(profileData.height_cm || 0);
+        const w = parseFloat(profileData.current_weight_kg || 0);
+        const tw = parseFloat(profileData.target_weight_kg || 0);
+
+        document.getElementById('sideHeight').textContent = h > 0 ? h : '--';
+        document.getElementById('sideWeight').textContent = w > 0 ? w : '--';
+        document.getElementById('sideTargetWeight').textContent = tw > 0 ? tw : '--';
+        document.getElementById('sideGoal').textContent = profileData.primary_goal || 'Healthy Living';
+        document.getElementById('sideCalories').textContent = profileData.daily_calorie_target || 2000;
+        document.getElementById('sideWater').textContent = profileData.water_target_liters || 2.5;
+        document.getElementById('sideSleep').textContent = profileData.sleep_target_hours || 8.0;
+
+        if (h > 0 && w > 0) {
+          const heightM = h / 100;
+          const bmi = (w / (heightM * heightM)).toFixed(1);
+          document.getElementById('sideBmiVal').textContent = bmi;
+          updateBmiBadge(parseFloat(bmi));
+        }
+
+        // Care Relationship
+        const requests = requestsRes.requests || [];
+        const accepted = requests.find(r => r.status === 'accepted');
+        const pending = requests.find(r => r.status === 'pending');
+        const careContainer = document.getElementById('careDietitianContent');
+        const careBadge = document.getElementById('careStatusBadge');
+
+        if (accepted) {
+          careBadge.className = 'badge badge-success';
+          careBadge.textContent = 'Active Care';
+          careContainer.innerHTML = `
+            <div class="flex items-center gap-3" style="margin-bottom: 12px;">
+              <img src="${accepted.dietitian_avatar || '../assets/images/images.jpeg'}" alt="Dietitian" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+              <div>
+                <strong style="font-size: 0.95rem; color: var(--text-main); display: block;">Dr. ${accepted.dietitian_name}</strong>
+                <span class="text-xs text-muted">${accepted.dietitian_specialty || 'Clinical Dietitian'}</span>
+              </div>
+            </div>
+            <div class="flex gap-2" style="margin-top: 8px;">
+              <a href="chat.html" class="btn btn-outline btn-full btn-sm">💬 Chat</a>
+              <a href="find-dietitian.html" class="btn btn-outline btn-full btn-sm">Profile</a>
+            </div>
+          `;
+        } else if (pending) {
+          careBadge.className = 'badge badge-warning';
+          careBadge.textContent = 'Request Pending';
+          careContainer.innerHTML = `
+            <p class="text-xs text-muted" style="margin-bottom: 10px;">
+              You sent a guidance request to <strong>Dr. ${pending.dietitian_name}</strong> awaiting review.
+            </p>
+            <a href="find-dietitian.html" class="btn btn-outline btn-full btn-sm">View Directory</a>
+          `;
+        } else {
+          careBadge.className = 'badge badge-secondary';
+          careBadge.textContent = 'Unassigned';
+          careContainer.innerHTML = `
+            <p class="text-xs text-muted" style="margin-bottom: 10px;">
+              You do not have an active assigned dietitian yet. Connect with an approved specialist for meal planning.
+            </p>
+            <a href="find-dietitian.html" class="btn btn-primary btn-full btn-sm">Browse Dietitians</a>
+          `;
+        }
+
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+        showAlert(err.message || 'Failed to load profile data', 'danger');
+      }
+    }
+
+    // Submit Personal Info & Avatar
+    document.getElementById('personalInfoForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btnSavePersonalInfo');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const fullName = document.getElementById('profileFullName').value.trim();
+
+      try {
+        const payload = {
+          full_name: fullName,
+          avatar_url: currentAvatarUrl
+        };
+
+        const res = await SHD_UI.request('/profile', {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+
+        // Update local session
+        const currentUser = JSON.parse(localStorage.getItem('shd_current_user') || '{}');
+        currentUser.full_name = fullName;
+        currentUser.avatar_url = currentAvatarUrl;
+        currentUser.avatar = currentAvatarUrl;
+        localStorage.setItem('shd_current_user', JSON.stringify(currentUser));
+
+        // Update UI
+        document.getElementById('heroFullName').textContent = fullName;
+        document.querySelectorAll('.user-profile-menu .font-bold.text-sm').forEach(el => el.textContent = fullName);
+        document.querySelectorAll('.user-profile-menu .user-avatar').forEach(el => el.src = currentAvatarUrl);
+
+        showAlert('Profile information & avatar updated successfully!', 'success');
+      } catch (err) {
+        showAlert(err.message || 'Failed to update profile', 'danger');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Profile Changes';
+      }
+    });
+
+    // Submit Password Update
+    document.getElementById('passwordForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        alert('New password and confirm password do not match.');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        alert('New password must be at least 6 characters long.');
+        return;
+      }
+
+      const btn = document.getElementById('btnUpdatePassword');
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+
+      try {
+        await SHD_UI.request('/profile', {
+          method: 'PUT',
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword
+          })
+        });
+
+        document.getElementById('passwordForm').reset();
+        showAlert('Security password changed successfully!', 'success');
+      } catch (err) {
+        showAlert(err.message || 'Failed to update password', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUserProfile();
+    });
+  </script>
+</body>
+</html>
