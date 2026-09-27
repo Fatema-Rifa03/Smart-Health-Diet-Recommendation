@@ -20,6 +20,7 @@ export const register = async (req, res) => {
             role = "user"
         } = req.body;
 
+
         // Validate required fields
         if (!full_name || !email || !password) {
             return res.status(400).json({

@@ -102,6 +102,16 @@
   let cachedPatients = [];
   let cachedRequests = [];
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   // Check auth and auto-sync header info
   async function checkDietitianAuth() {
     const token = localStorage.getItem('shd_token');
@@ -167,9 +177,9 @@
       el.textContent = isApproved ? 'Approved Specialist' : 'Pending Verification';
     });
 
-    // If on dashboard and pending verification, show prominent banner
+    // If unverified, show prominent banner across main portal pages
     const page = window.location.pathname.split('/').pop();
-    if (page === 'dashboard.html' || page === '') {
+    if (['dashboard.html', '', 'patients.html', 'guidance-requests.html', 'meal-builder.html'].includes(page)) {
       renderVerificationBanner(profile);
     }
   }
@@ -441,24 +451,64 @@
     const tbody = document.getElementById('patientsTableBody');
     if (!tbody) return;
 
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 32px;">Loading patient records...</td></tr>`;
+
     const res = await dietitianFetch('/dietitian/patients');
     cachedPatients = res?.patients || [];
 
+    const isApproved = res?.verified === true || (currentProfile?.status || '').toLowerCase() === 'approved';
+
+    if (!isApproved) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 48px 24px;">
+            <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold;">!</div>
+              <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main, #1e293b); margin: 0;">Profile Verification Required</h3>
+              <p style="color: var(--text-muted, #64748b); font-size: 0.925rem; line-height: 1.5; margin: 0;">
+                Your account is currently <strong>${escapeHtml((res?.status || currentProfile?.status || 'pending').toUpperCase())}</strong>. 
+                Patients cannot be assigned to you until an administrator reviews and approves your clinical credentials.
+              </p>
+              <a href="profile.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">
+                Complete & Request Verification &rarr;
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     if (cachedPatients.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 32px;">No patient health records found.</td></tr>`;
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 48px 24px;">
+            <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 26px;">✓</div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main, #1e293b); margin: 0;">No Assigned Patients Yet</h3>
+              <p style="color: var(--text-muted, #64748b); font-size: 0.925rem; line-height: 1.5; margin: 0;">
+                Your profile is verified and active in the directory! When patients submit guidance requests and you accept them, they will appear in this directory.
+              </p>
+              <a href="guidance-requests.html" class="btn btn-outline btn-sm" style="margin-top: 6px;">
+                View Incoming Guidance Requests
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
       return;
     }
 
     tbody.innerHTML = cachedPatients.map(u => `
       <tr>
-        <td class="font-bold">${u.name}<span class="text-xs text-muted block">${u.email}</span></td>
-        <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${u.gender || 'N/A'}</td>
+        <td class="font-bold">${escapeHtml(u.name)}<span class="text-xs text-muted block">${escapeHtml(u.email)}</span></td>
+        <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${escapeHtml(u.gender || 'N/A')}</td>
         <td>${u.height || 170} cm | <strong>${u.weight || 70} kg</strong></td>
-        <td><span class="badge badge-success">BMI: ${u.bmi || '23.4'}</span></td>
-        <td><span class="badge badge-primary">${u.goal || 'General Nutrition'}</span></td>
+        <td><span class="badge badge-success">BMI: ${u.bmi || 'N/A'}</span></td>
+        <td><span class="badge badge-primary">${escapeHtml(u.goal || 'General Nutrition')}</span></td>
         <td>
           <a href="meal-builder.html?patient=${encodeURIComponent(u.name)}" class="btn btn-primary btn-sm">Build Plan</a>
-          <a href="chat.html?patient=${u.id}" class="btn btn-outline btn-sm">Chat</a>
+          ${u.conversationId ? `<a href="chat.html?conv=${u.conversationId}" class="btn btn-outline btn-sm" style="margin-left: 6px;">Chat</a>` : ''}
         </td>
       </tr>
     `).join('');
@@ -475,6 +525,8 @@
     const res = await dietitianFetch('/dietitian/guidance-requests');
     cachedRequests = res?.requests || [];
 
+    const isApproved = res?.verified === true || (currentProfile?.status || '').toLowerCase() === 'approved';
+
     const pendingCountEl = document.getElementById('pendingCount');
     const pending = cachedRequests.filter(r => (r.status || '').toLowerCase() === 'pending');
     if (pendingCountEl) pendingCountEl.textContent = `${pending.length} pending`;
@@ -482,8 +534,28 @@
     const tbody = document.getElementById('requestsTable');
     if (!tbody) return;
 
+    if (!isApproved) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 48px 24px;">
+            <div style="max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">!</div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main, #1e293b); margin: 0;">Verification Required</h3>
+              <p style="color: var(--text-muted, #64748b); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                Patients cannot discover or send guidance requests to your profile until your clinical credentials are confirmed by an administrator.
+              </p>
+              <a href="profile.html" class="btn btn-primary btn-sm" style="margin-top: 6px;">
+                Complete & Submit Credentials &rarr;
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
     if (cachedRequests.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 24px;">No guidance requests received from patients yet.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 32px;">No guidance requests received from patients yet.</td></tr>`;
       return;
     }
 
@@ -492,8 +564,8 @@
       const isAccepted = (r.status || '').toLowerCase() === 'accepted';
       return `
         <tr>
-          <td class="font-bold">${r.userName || 'Patient'}<span class="text-xs text-muted block">${r.userEmail || ''}</span></td>
-          <td>${r.goal || 'Personal nutrition consultation'}</td>
+          <td class="font-bold">${escapeHtml(r.userName || 'Patient')}<span class="text-xs text-muted block">${escapeHtml(r.userEmail || '')}</span></td>
+          <td>${escapeHtml(r.goal || 'Personal nutrition consultation')}</td>
           <td>${r.formattedDate || new Date(r.createdAt).toLocaleDateString()}</td>
           <td>
             <span class="badge ${isAccepted ? 'badge-success' : isPending ? 'badge-warning' : 'badge-danger'}">
@@ -540,8 +612,10 @@
 
       if (patients.length > 0) {
         selectPatient.innerHTML = patients.map(p => `
-          <option value="${p.id}">${p.name} (Goal: ${p.goal})</option>
+          <option value="${p.id}">${escapeHtml(p.name)} (Goal: ${escapeHtml(p.goal)})</option>
         `).join('');
+      } else {
+        selectPatient.innerHTML = `<option value="">-- No assigned patients available --</option>`;
       }
 
       // Check if patient was passed in query parameter

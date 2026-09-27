@@ -8,28 +8,94 @@
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
 <body>
+
   <div class="dashboard-layout">
+    
     <aside class="sidebar">
       <div>
-        <div class="sidebar-brand"><img src="../assets/images/logo.jpg" alt="Logo"><div><span class="sidebar-brand-text">Dietitian Portal</span><span class="text-xs text-muted block font-medium">& Clinical Care</span></div></div>
+        <div class="sidebar-brand">
+          <img src="../assets/images/logo.jpg" alt="Logo">
+          <div>
+            <span class="sidebar-brand-text">Dietitian Portal</span>
+            <span class="text-xs text-muted block font-medium">& Clinical Care</span>
+          </div>
+        </div>
+
         <nav class="sidebar-menu">
-          <a href="dashboard.html" class="sidebar-link"><span aria-hidden="true">▦</span>Dietitian Overview</a>
-          <a href="profile.html" class="sidebar-link"><span aria-hidden="true">👤</span>Profile & Verification</a>
-          <a href="patients.html" class="sidebar-link"><span aria-hidden="true">♙</span>Patient Health Records</a>
-          <a href="guidance-requests.html" class="sidebar-link active"><span aria-hidden="true">♡</span>Guidance Requests</a>
-          <a href="meal-builder.html" class="sidebar-link"><span aria-hidden="true">▤</span>Create Meal Plans</a>
-          <a href="recipe-upload.html" class="sidebar-link"><span aria-hidden="true">▥</span>Upload Recipes & Guides</a>
-          <a href="chat.html" class="sidebar-link"><span aria-hidden="true">□</span>Patient Inbox</a>
+          <a href="dashboard.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Dietitian Overview
+          </a>
+          <a href="profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile & Verification
+          </a>
+          <a href="patients.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Patient Health Records
+          </a>
+          <a href="meal-builder.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Create Meal Plans
+          </a>
+          <a href="guidance-requests.html" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
+            Guidance Requests
+          </a>
+          <a href="recipe-upload.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Upload Recipes & Guides
+          </a>
+          <a href="chat.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Patient Inbox
+          </a>
         </nav>
       </div>
-      <div style="border-top: 1px solid var(--border); padding-top: 16px;"><a href="../auth/login.html" class="sidebar-link text-danger" onclick="localStorage.removeItem('shd_current_user')"><span aria-hidden="true">↪</span>Sign Out</a></div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+        <a href="../auth/login.html" class="sidebar-link text-danger" onclick="localStorage.removeItem('shd_current_user')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="9"/></svg>
+          Sign Out
+        </a>
+      </div>
     </aside>
 
     <div class="main-wrapper">
-      <header class="top-header"><h1 class="text-xl font-bold">Guidance Requests</h1><div class="user-profile-menu"><span class="font-bold text-sm">Specialist</span><img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar"></div></header>
+      <header class="top-header">
+        <h1 class="text-xl font-bold">Patient Nutrition Guidance Requests</h1>
+        <div class="user-profile-menu">
+          <span class="font-bold text-sm">Dr. Sarah Jenkins</span>
+          <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
+        </div>
+      </header>
+
       <main class="dashboard-content">
-        <div class="card"><div class="card-header"><div><h2 class="card-title">Patient requests</h2><p class="text-sm text-muted">Review requests from patients who want nutrition guidance.</p></div><span id="pendingCount" class="badge badge-warning"></span></div>
-          <div class="table-container"><table class="table"><thead><tr><th>Patient</th><th>Goal</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody id="requestsTable"></tbody></table></div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Patient Guidance Requests</h2>
+              <p class="text-sm text-muted">Review and accept consultation requests from patients seeking dietary supervision.</p>
+            </div>
+            <span id="pendingCount" class="badge badge-warning"></span>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Goal</th>
+                  <th>Requested</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="requestsTable">
+                <!-- Dynamic Content -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
     </div>
