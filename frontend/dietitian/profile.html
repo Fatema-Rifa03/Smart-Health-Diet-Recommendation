@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Meal Plan - Dietitian Portal</title>
+  <title>Dietitian Profile & Verification - Smart Health System</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
@@ -11,6 +11,7 @@
 
   <div class="dashboard-layout">
     
+    <!-- Dietitian Sidebar -->
     <aside class="sidebar">
       <div>
         <div class="sidebar-brand">
@@ -26,7 +27,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dietitian Overview
           </a>
-          <a href="profile.html" class="sidebar-link">
+          <a href="profile.html" class="sidebar-link active">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             Profile & Verification
           </a>
@@ -38,13 +39,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
             Guidance Requests
           </a>
-          <a href="meal-builder.html" class="sidebar-link active">
+          <a href="meal-builder.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Create Meal Plans
-          </a>
-          <a href="guidance-requests.html" class="sidebar-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8z"/></svg>
-            Guidance Requests
           </a>
           <a href="recipe-upload.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -65,61 +62,92 @@
       </div>
     </aside>
 
+    <!-- Main Wrapper -->
     <div class="main-wrapper">
       
       <header class="top-header">
-        <h1 class="text-xl font-bold">Build & Assign Custom Patient Meal Plan</h1>
+        <h1 class="text-xl font-bold">Dietitian Profile & Clinical Verification</h1>
         <div class="user-profile-menu">
-          <span class="font-bold text-sm">Dr. Sarah Jenkins</span>
+          <div style="text-align: right;">
+            <span class="font-bold text-sm block">Specialist</span>
+            <span class="badge badge-warning">Pending Verification</span>
+          </div>
           <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar">
         </div>
       </header>
 
       <main class="dashboard-content">
         
-        <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <!-- Verification Status Card -->
+        <div id="profileStatusDisplay" style="margin-bottom: 24px;">
+          <!-- Dynamically populated by dietitian.js -->
+        </div>
+
+        <!-- Profile Form Card -->
+        <div class="card" style="max-width: 860px; margin: 0 auto;">
           <div class="card-header">
-            <h2 class="card-title">Custom Meal Plan Form</h2>
+            <div>
+              <h2 class="card-title">Clinical Credentials & Professional Setup</h2>
+              <p class="text-xs text-muted" style="margin-top: 4px;">
+                Complete all required qualifications. Once submitted, your profile will be sent to the System Administrator for verification.
+              </p>
+            </div>
           </div>
 
-          <form id="builderForm">
-            <div class="form-group">
-              <label class="form-label" for="selectPatient">Target Patient</label>
-              <select id="selectPatient" class="form-control" required>
-                <option value="Fatema Rifa">Fatema Rifa (Goal: Weight Loss)</option>
-                <option value="Tanvir Ahmed">Tanvir Ahmed (Goal: Muscle Gain)</option>
-              </select>
+          <form id="dietitianProfileForm">
+            
+            <div class="grid grid-2 gap-4">
+              <div class="form-group">
+                <label class="form-label" for="dietitianName">Full Name & Title</label>
+                <input type="text" id="dietitianName" class="form-control" placeholder="e.g. Dr. Emily Vance" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="dietitianEmail">Registered Email</label>
+                <input type="email" id="dietitianEmail" class="form-control" disabled style="background-color: var(--bg-surface); opacity: 0.7;">
+              </div>
             </div>
 
             <div class="grid grid-2 gap-4">
               <div class="form-group">
-                <label class="form-label" for="planTitle">Plan Title</label>
-                <input type="text" id="planTitle" class="form-control" placeholder="e.g. Low-Carb High-Protein Plan" required>
+                <label class="form-label" for="dietitianSpecialty">Specialty Area</label>
+                <input type="text" id="dietitianSpecialty" class="form-control" placeholder="e.g. Clinical Nutrition & Weight Loss" required>
+                <span class="text-xs text-muted" style="margin-top: 4px; display: block;">Patients will discover you by searching for this specialty.</span>
               </div>
+
               <div class="form-group">
-                <label class="form-label" for="targetCalories">Target Daily Calories (kcal)</label>
-                <input type="number" id="targetCalories" class="form-control" value="1800" required>
+                <label class="form-label" for="dietitianExperience">Years of Clinical Experience</label>
+                <input type="number" step="0.5" id="dietitianExperience" class="form-control" placeholder="5" required>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="breakfast">Breakfast Recommendation</label>
-              <input type="text" id="breakfast" class="form-control" placeholder="Berry Oatmeal with chia seeds (350 kcal)" required>
+              <label class="form-label" for="dietitianQualification">Medical Degrees & Qualifications</label>
+              <textarea id="dietitianQualification" class="form-control" rows="3" placeholder="e.g. Ph.D. in Clinical Nutrition, Registered Dietitian (RD), Certified Diabetes Care Specialist" required></textarea>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="lunch">Lunch Recommendation</label>
-              <input type="text" id="lunch" class="form-control" placeholder="Grilled Chicken Salad (480 kcal)" required>
+            <div class="grid grid-2 gap-4">
+              <div class="form-group">
+                <label class="form-label" for="dietitianLicense">Medical Registration / License ID</label>
+                <input type="text" id="dietitianLicense" class="form-control" readonly style="background-color: var(--bg-surface);">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="dietitianAvatar">Avatar Photo URL</label>
+                <input type="url" id="dietitianAvatar" class="form-control" placeholder="https://images.unsplash.com/photo-...">
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="dinner">Dinner Recommendation</label>
-              <input type="text" id="dinner" class="form-control" placeholder="Steamed Salmon with Asparagus (550 kcal)" required>
+            <div class="flex items-center justify-between gap-4" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); flex-wrap: wrap;">
+              <button type="submit" class="btn btn-outline">
+                Save Profile Changes
+              </button>
+
+              <button type="button" id="requestVerificationBtn" class="btn btn-primary">
+                Submit Profile for Verification
+              </button>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 12px;">
-              Publish & Send Meal Plan
-            </button>
           </form>
         </div>
 

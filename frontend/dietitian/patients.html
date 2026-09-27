@@ -26,6 +26,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dietitian Overview
           </a>
+          <a href="profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile & Verification
+          </a>
           <a href="patients.html" class="sidebar-link active">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             Patient Health Records
@@ -97,33 +101,7 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderPatientRecords() {
-      const users = SHD_Data.getUsers();
-      const tbody = document.getElementById('patientsTableBody');
-
-      tbody.innerHTML = users.map(u => {
-        const h = u.height / 100;
-        const bmi = (u.weight / (h * h)).toFixed(1);
-        return `
-          <tr>
-            <td class="font-bold">${u.name}<span class="text-xs text-muted block">${u.email}</span></td>
-            <td>${u.age} yrs / ${u.gender}</td>
-            <td>${u.height} cm | <strong>${u.weight} kg</strong></td>
-            <td><span class="badge badge-success">BMI: ${bmi}</span></td>
-            <td><span class="badge badge-primary">${u.goal}</span></td>
-            <td>
-              <a href="meal-builder.html" class="btn btn-primary btn-sm">Build Plan</a>
-              <a href="chat.html" class="btn btn-outline btn-sm">Chat</a>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    document.addEventListener('DOMContentLoaded', renderPatientRecords);
-  </script>
+  <script src="../assets/js/dietitian.js"></script>
 </body>
 </html>

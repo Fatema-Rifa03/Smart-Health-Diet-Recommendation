@@ -26,6 +26,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dietitian Overview
           </a>
+          <a href="profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile & Verification
+          </a>
           <a href="patients.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             Patient Health Records
@@ -115,25 +119,7 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    document.getElementById('recipeForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const recipes = SHD_Data.getRecipes();
-      recipes.push({
-        id: 'r_' + Date.now(),
-        title: document.getElementById('title').value,
-        category: document.getElementById('category').value,
-        calories: parseInt(document.getElementById('calories').value),
-        prepTime: document.getElementById('prepTime').value,
-        author: 'Dr. Sarah Jenkins',
-        image: document.getElementById('image').value || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&auto=format&fit=crop&q=80'
-      });
-      localStorage.setItem('shd_recipes', JSON.stringify(recipes));
-      alert('Recipe published successfully!');
-      this.reset();
-    });
-  </script>
+  <script src="../assets/js/dietitian.js"></script>
 </body>
 </html>
