@@ -26,6 +26,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             Dietitian Overview
           </a>
+          <a href="profile.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile & Verification
+          </a>
           <a href="patients.html" class="sidebar-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             Patient Health Records
@@ -114,35 +118,7 @@
     </div>
   </div>
 
-  <script src="../assets/js/dummy-data.js"></script>
   <script src="../assets/js/main.js"></script>
-  <script>
-    function renderDietitianInbox() {
-      const chats = SHD_Data.getChats();
-      const stream = document.getElementById('dietitianInboxStream');
-
-      stream.innerHTML = chats.map(c => `
-        <div class="message-bubble ${c.isDietitian ? 'message-sent' : 'message-received'}">
-          <span class="text-xs font-bold block" style="margin-bottom: 4px; opacity: 0.8;">${c.sender} • ${c.time}</span>
-          <p>${c.text}</p>
-        </div>
-      `).join('');
-
-      stream.scrollTop = stream.scrollHeight;
-    }
-
-    document.getElementById('dietitianInboxForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const input = document.getElementById('dietitianInboxInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      SHD_Data.addChatMessage(text, true, 'Dr. Sarah Jenkins');
-      input.value = '';
-      renderDietitianInbox();
-    });
-
-    document.addEventListener('DOMContentLoaded', renderDietitianInbox);
-  </script>
+  <script src="../assets/js/dietitian.js"></script>
 </body>
 </html>

@@ -7,6 +7,8 @@ import profileRoutes from "./routes/profile.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js";
 import foodRoutes from "./routes/food.routes.js";
 import userResourceRoutes from "./routes/user-resources.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import dietitianRoutes from "./routes/dietitian.routes.js";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/tracking", trackingRoutes);
 app.use("/api/foods", foodRoutes);
 app.use("/api/user", userResourceRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/dietitian", dietitianRoutes);
 
 app.use((req, res) => {
     res.status(404).json({
