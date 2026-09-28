@@ -286,18 +286,38 @@
         if (patients.length === 0) {
           tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 24px;">No assigned patient health records yet.</td></tr>`;
         } else {
-          tbody.innerHTML = patients.slice(0, 5).map(u => `
-            <tr>
-              <td class="font-bold">${u.name}<span class="text-xs text-muted block">${u.email}</span></td>
-              <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${u.gender || 'N/A'}</td>
-              <td><strong>${u.weight} kg</strong> (${u.height || 170} cm)</td>
-              <td><span class="badge badge-primary">${u.goal || 'General Health'}</span></td>
-              <td class="font-bold text-primary">${u.dailyCalorieLimit || 2000} kcal/day</td>
-              <td>
-                <a href="meal-builder.html?patient=${encodeURIComponent(u.name)}" class="btn btn-outline btn-sm">Assign Plan</a>
-              </td>
-            </tr>
-          `).join('');
+          tbody.innerHTML = patients.slice(0, 5).map(u => {
+            let badge = '';
+            if (u.adherenceStatus === 'extra_reported') {
+              badge = `<span class="badge badge-warning">⚠ Extra Food (+${u.todayExtraCalories} kcal)</span>`;
+            } else if (u.adherenceStatus === 'exceeded') {
+              badge = `<span class="badge badge-danger">✕ Exceeded Plan</span>`;
+            } else if (u.todayLogsCount > 0) {
+              badge = `<span class="badge badge-success">✓ On Track</span>`;
+            } else {
+              badge = `<span class="badge badge-secondary">No Logs Today</span>`;
+            }
+            const consumed = u.todayTotalCalories || 0;
+            const target = u.targetCalories || 2000;
+
+            return `
+              <tr>
+                <td class="font-bold">
+                  ${escapeHtml(u.name)}
+                  <span class="text-xs text-muted block">${escapeHtml(u.email)}</span>
+                </td>
+                <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${escapeHtml(u.gender || 'N/A')}</td>
+                <td>${badge}</td>
+                <td><span class="badge badge-primary">${escapeHtml(u.goal || 'General Health')}</span></td>
+                <td>
+                  <strong style="color: ${consumed > target ? '#b91c1c' : 'var(--primary)'};">${consumed.toLocaleString()}</strong> / ${target.toLocaleString()} kcal
+                </td>
+                <td>
+                  <a href="patients.html" class="btn btn-outline btn-sm">Review Logs</a>
+                </td>
+              </tr>
+            `;
+          }).join('');
         }
       }
     }
@@ -499,20 +519,199 @@
       return;
     }
 
-    tbody.innerHTML = cachedPatients.map(u => `
-      <tr>
-        <td class="font-bold">${escapeHtml(u.name)}<span class="text-xs text-muted block">${escapeHtml(u.email)}</span></td>
-        <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${escapeHtml(u.gender || 'N/A')}</td>
-        <td>${u.height || 170} cm | <strong>${u.weight || 70} kg</strong></td>
-        <td><span class="badge badge-success">BMI: ${u.bmi || 'N/A'}</span></td>
-        <td><span class="badge badge-primary">${escapeHtml(u.goal || 'General Nutrition')}</span></td>
-        <td>
-          <a href="meal-builder.html?patient=${encodeURIComponent(u.name)}" class="btn btn-primary btn-sm">Build Plan</a>
-          ${u.conversationId ? `<a href="chat.html?conv=${u.conversationId}" class="btn btn-outline btn-sm" style="margin-left: 6px;">Chat</a>` : ''}
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = cachedPatients.map(u => {
+      const isExtra = u.extraLogsCount > 0 || u.todayExtraCalories > 0;
+      let badgeHtml = '';
+      if (u.adherenceStatus === 'extra_reported') {
+        badgeHtml = `<span class="badge badge-warning" style="font-weight: 700;">⚠ Extra Food (+${u.todayExtraCalories} kcal)</span>`;
+      } else if (u.adherenceStatus === 'exceeded') {
+        badgeHtml = `<span class="badge badge-danger" style="font-weight: 700;">✕ Exceeded Plan</span>`;
+      } else if (u.todayLogsCount > 0) {
+        badgeHtml = `<span class="badge badge-success" style="font-weight: 700;">✓ Maintaining Diet</span>`;
+      } else {
+        badgeHtml = `<span class="badge badge-secondary">No Logs Today</span>`;
+      }
+
+      const consumed = u.todayTotalCalories || 0;
+      const target = u.targetCalories || 2000;
+
+      return `
+        <tr>
+          <td>
+            <strong style="color: var(--text-main); font-size: 0.95rem;">${escapeHtml(u.name)}</strong>
+            <span class="text-xs text-muted block">${escapeHtml(u.email)}</span>
+            <span class="text-xs font-semibold" style="color: var(--primary);">BMI: ${u.bmi || 'N/A'}</span>
+          </td>
+          <td>${u.age ? u.age + ' yrs' : 'N/A'} / ${escapeHtml(u.gender || 'N/A')}</td>
+          <td>
+            <strong>${escapeHtml(u.activePlanTitle || 'No Active Plan')}</strong>
+            <span class="text-xs text-muted block">Target: ${target} kcal/day</span>
+          </td>
+          <td>
+            ${badgeHtml}
+            ${isExtra ? `<div style="font-size: 0.75rem; color: #b45309; margin-top: 4px;">${u.extraLogsCount} off-plan item(s) logged</div>` : ''}
+          </td>
+          <td>
+            <strong style="font-size: 1rem; color: ${consumed > target ? '#b91c1c' : 'var(--primary)'};">${consumed.toLocaleString()}</strong>
+            <span class="text-xs text-muted"> / ${target.toLocaleString()} kcal</span>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+              Regular: ${u.todayRegularCalories || 0} | Extra: ${u.todayExtraCalories || 0}
+            </div>
+          </td>
+          <td>
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+              <button onclick="SHD_Dietitian.openPatientAdherenceModal('${u.id}')" class="btn btn-primary btn-sm" style="font-size: 0.78rem; padding: 4px 10px;">
+                Review Logs &amp; Status
+              </button>
+              <a href="meal-builder.html?patient=${encodeURIComponent(u.name)}&calorieTarget=${target}" class="btn btn-outline btn-sm" style="font-size: 0.78rem; padding: 4px 10px;">
+                Adjust Plan
+              </a>
+              ${u.conversationId ? `<a href="chat.html?conv=${u.conversationId}" class="btn btn-outline btn-sm" style="font-size: 0.78rem; padding: 4px 8px;">Chat</a>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
+
+  async function openPatientAdherenceModal(patientId) {
+    const modal = document.getElementById('patientAdherenceModal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    const nameEl = document.getElementById('adhModalPatientName');
+    const metaEl = document.getElementById('adhModalPatientMeta');
+    const badgeEl = document.getElementById('adhModalStatusBadge');
+    const calsEl = document.getElementById('adhModalCalories');
+    const extraEl = document.getElementById('adhModalExtra');
+    const extraList = document.getElementById('adhExtraLogsList');
+    const extraBadge = document.getElementById('adhExtraCountBadge');
+    const prescribedList = document.getElementById('adhPrescribedList');
+    const historyTbody = document.getElementById('adhHistoryTableBody');
+    const adjustBtn = document.getElementById('adhAdjustPlanBtn');
+
+    nameEl.textContent = 'Loading patient details...';
+    extraList.innerHTML = '<div class="text-muted text-xs">Loading logs...</div>';
+    prescribedList.innerHTML = '<div class="text-muted text-xs">Loading plan...</div>';
+
+    const res = await dietitianFetch(`/dietitian/patients/${patientId}/adherence`);
+    if (!res || !res.success) {
+      alert('Failed to load patient adherence data.');
+      closeAdherenceModal();
+      return;
+    }
+
+    const { patient, activePlan, todayLogs, recentLogs } = res;
+
+    nameEl.textContent = `${patient.full_name || 'Patient'} - Diet Adherence Review`;
+    metaEl.textContent = `${patient.email || ''} | Age: ${patient.age || 'N/A'} | Goal: ${patient.primary_goal || 'Nutrition'} | Calorie Target: ${activePlan?.target_calories || patient.daily_calorie_target || 2000} kcal`;
+
+    let regularCals = 0;
+    let extraCals = 0;
+    const extraEntries = [];
+
+    todayLogs.forEach(m => {
+      const cal = parseInt(m.calories, 10) || 0;
+      if (m.is_extra) {
+        extraCals += cal;
+        extraEntries.push(m);
+      } else {
+        regularCals += cal;
+      }
+    });
+    const totalCals = regularCals + extraCals;
+    const targetCals = activePlan?.target_calories || patient.daily_calorie_target || 2000;
+
+    calsEl.textContent = `${totalCals.toLocaleString()} / ${targetCals.toLocaleString()} kcal`;
+    extraEl.textContent = `${extraCals.toLocaleString()} kcal`;
+
+    if (extraEntries.length > 0) {
+      badgeEl.className = 'badge badge-warning';
+      badgeEl.textContent = `⚠ Extra Food Reported (+${extraCals} kcal)`;
+    } else if (totalCals > targetCals + 50) {
+      badgeEl.className = 'badge badge-danger';
+      badgeEl.textContent = `✕ Calorie Limit Exceeded`;
+    } else if (todayLogs.length > 0) {
+      badgeEl.className = 'badge badge-success';
+      badgeEl.textContent = `✓ Maintaining Diet Plan`;
+    } else {
+      badgeEl.className = 'badge badge-secondary';
+      badgeEl.textContent = `No Logs Today`;
+    }
+
+    // Extra entries with patient notes
+    extraBadge.textContent = `${extraEntries.length} entries`;
+    if (extraEntries.length === 0) {
+      extraList.innerHTML = `
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px; color: #166534; font-size: 0.85rem;">
+          ✓ No extra or off-plan foods reported by patient today. The patient is following the prescribed regimen.
+        </div>
+      `;
+    } else {
+      extraList.innerHTML = extraEntries.map(e => `
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 12px;">
+          <div class="flex justify-between items-center">
+            <strong>${escapeHtml(e.meal_name)} (${e.category})</strong>
+            <span class="badge badge-warning" style="font-weight: 700;">+${e.calories} kcal</span>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.85rem; color: #92400e; background: #fef3c7; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #d97706;">
+            <strong>Patient Reason Note:</strong> "${escapeHtml(e.notes || 'No explanation note provided')}"
+          </div>
+          <div class="text-xs text-muted" style="margin-top: 4px;">Logged at: ${new Date(e.logged_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+        </div>
+      `).join('');
+    }
+
+    // Prescribed items
+    if (!activePlan || !activePlan.items || activePlan.items.length === 0) {
+      prescribedList.innerHTML = `<div class="text-muted text-xs">No active meal plan assigned to this patient.</div>`;
+    } else {
+      prescribedList.innerHTML = activePlan.items.map(item => {
+        const eatenMatch = todayLogs.find(l => !l.is_extra && l.category === item.category);
+        return `
+          <div class="flex justify-between items-center" style="background: var(--bg-page); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.85rem;">
+            <div>
+              <span class="badge badge-primary" style="margin-right: 6px; font-size: 0.7rem;">${item.category}</span>
+              <strong>${escapeHtml(item.recommendation)}</strong>
+            </div>
+            <div>
+              ${eatenMatch ? `<span class="badge badge-success">✓ Eaten</span>` : `<span class="badge badge-secondary" style="opacity: 0.8;">Pending</span>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // History table
+    if (!recentLogs || recentLogs.length === 0) {
+      historyTbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted" style="padding: 16px;">No meal log history recorded in the past 7 days.</td></tr>`;
+    } else {
+      historyTbody.innerHTML = recentLogs.map(l => `
+        <tr>
+          <td>${new Date(l.logged_for).toLocaleDateString([], {month:'short', day:'numeric'})}</td>
+          <td><span class="badge ${l.is_extra ? 'badge-warning' : 'badge-primary'}" style="font-size: 0.7rem;">${l.category}</span></td>
+          <td class="font-bold">${escapeHtml(l.meal_name)}</td>
+          <td>${l.calories} kcal</td>
+          <td>
+            ${l.is_extra ? `<span style="color: #b45309; font-size: 0.75rem;">Extra: "${escapeHtml(l.notes || '')}"</span>` : `<span class="text-muted" style="font-size: 0.75rem;">Prescribed Plan</span>`}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Setup adjust plan button
+    adjustBtn.href = `meal-builder.html?patientId=${patient.id}&patient=${encodeURIComponent(patient.full_name)}&calorieTarget=${targetCals}&extraNotes=${encodeURIComponent(extraEntries.map(e => e.meal_name + ': ' + (e.notes || '')).join(' | '))}`;
+  }
+
+  function closeAdherenceModal() {
+    const modal = document.getElementById('patientAdherenceModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  window.SHD_Dietitian.openPatientAdherenceModal = openPatientAdherenceModal;
+  window.SHD_Dietitian.closeAdherenceModal = closeAdherenceModal;
+  window.openPatientAdherenceModal = openPatientAdherenceModal;
+  window.closeAdherenceModal = closeAdherenceModal;
 
   /* ==========================================================================
      4. GUIDANCE REQUESTS PAGE
@@ -604,66 +803,537 @@
   /* ==========================================================================
      5. MEAL BUILDER PAGE
      ========================================================================== */
+  /* ==========================================================================
+     5. MEAL BUILDER PAGE (Advanced Food Catalog & Custom Builder)
+     ========================================================================== */
   async function initMealBuilderPage() {
+    const form = document.getElementById('builderForm');
+    if (!form) return;
+
+    let allStoredFoods = [];
+    const selectedMealItems = {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+      snacks: []
+    };
+
+    // Set default dates (Today to +7 days)
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    if (startDateInput && !startDateInput.value) {
+      const today = new Date();
+      startDateInput.value = today.toISOString().split('T')[0];
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      if (endDateInput) endDateInput.value = nextWeek.toISOString().split('T')[0];
+    }
+
+    // 1. Load Assigned Patients
     const selectPatient = document.getElementById('selectPatient');
+    const patientHint = document.getElementById('patientMetaHint');
+    let patientsList = [];
+
     if (selectPatient) {
       const res = await dietitianFetch('/dietitian/patients');
-      const patients = res?.patients || [];
+      patientsList = res?.patients || [];
 
-      if (patients.length > 0) {
-        selectPatient.innerHTML = patients.map(p => `
-          <option value="${p.id}">${escapeHtml(p.name)} (Goal: ${escapeHtml(p.goal)})</option>
-        `).join('');
+      if (patientsList.length > 0) {
+        selectPatient.innerHTML = `
+          <option value="">-- Choose Assigned Patient --</option>
+          ${patientsList.map(p => `
+            <option value="${p.id}" data-goal="${escapeHtml(p.goal || '')}" data-cal="${p.dailyCalorieLimit || 2000}" data-weight="${p.weight || ''}">
+              ${escapeHtml(p.name)} (${escapeHtml(p.goal || 'General Health')})
+            </option>
+          `).join('')}
+        `;
       } else {
-        selectPatient.innerHTML = `<option value="">-- No assigned patients available --</option>`;
+        selectPatient.innerHTML = `<option value="">-- No assigned patients available (Verification Required) --</option>`;
       }
 
-      // Check if patient was passed in query parameter
+      // Check query params for patient, calorieTarget, and extraNotes
       const urlParams = new URLSearchParams(window.location.search);
       const patientParam = urlParams.get('patient');
-      if (patientParam && selectPatient) {
+      const patientIdParam = urlParams.get('patientId');
+      const extraNotesParam = urlParams.get('extraNotes');
+      const calorieTargetParam = urlParams.get('calorieTarget');
+
+      if ((patientParam || patientIdParam) && selectPatient) {
         for (let i = 0; i < selectPatient.options.length; i++) {
-          if (selectPatient.options[i].text.includes(patientParam)) {
+          const opt = selectPatient.options[i];
+          if ((patientIdParam && opt.value === patientIdParam) || 
+              (patientParam && opt.text.toLowerCase().includes(patientParam.toLowerCase()))) {
             selectPatient.selectedIndex = i;
             break;
           }
         }
       }
+
+      if (calorieTargetParam) {
+        const calInput = document.getElementById('targetCalories');
+        if (calInput) calInput.value = calorieTargetParam;
+      }
+
+      if (extraNotesParam) {
+        let noteAlert = document.getElementById('adherenceAdjustmentAlert');
+        if (!noteAlert) {
+          noteAlert = document.createElement('div');
+          noteAlert.id = 'adherenceAdjustmentAlert';
+          noteAlert.className = 'alert alert-warning';
+          noteAlert.style.marginBottom = '20px';
+          form.prepend(noteAlert);
+        }
+        noteAlert.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 1.25rem;">⚠️</span>
+            <div>
+              <strong>Patient Deviation / Extra Eating Reported:</strong>
+              <div style="font-style: italic; margin-top: 4px; color: #92400e;">"${decodeURIComponent(extraNotesParam)}"</div>
+              <div class="text-xs text-muted" style="margin-top: 4px;">Adjust meal portions, calories, or add satisfying snacks to keep patient adherence high.</div>
+            </div>
+          </div>
+        `;
+      }
+
+      function updatePatientMeta() {
+        const opt = selectPatient.selectedOptions[0];
+        if (opt && opt.value) {
+          const goal = opt.dataset.goal || 'General Nutrition';
+          const cal = opt.dataset.cal || '2000';
+          const weight = opt.dataset.weight ? `${opt.dataset.weight} kg` : 'N/A';
+          if (patientHint) {
+            patientHint.innerHTML = `<strong>Selected:</strong> ${escapeHtml(opt.text.split('(')[0])} &bull; Goal: <strong>${escapeHtml(goal)}</strong> &bull; Weight: <strong>${weight}</strong> &bull; Daily Target: <strong>${cal} kcal</strong>`;
+          }
+          const targetCalInput = document.getElementById('targetCalories');
+          if (targetCalInput && (!targetCalInput.value || targetCalInput.value === '2000')) {
+            targetCalInput.value = cal;
+          }
+        } else if (patientHint) {
+          patientHint.textContent = 'Select an assigned patient to auto-sync their target calories and health goal.';
+        }
+      }
+
+      selectPatient.addEventListener('change', updatePatientMeta);
+      updatePatientMeta();
     }
 
-    const form = document.getElementById('builderForm');
-    if (form) {
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const patientId = document.getElementById('selectPatient')?.value;
-        const title = document.getElementById('planTitle')?.value;
-        const calories = parseInt(document.getElementById('targetCalories')?.value) || 2000;
-        const breakfast = document.getElementById('breakfast')?.value;
-        const lunch = document.getElementById('lunch')?.value;
-        const dinner = document.getElementById('dinner')?.value;
+    // 2. Load Plan Titles & Clinical Protocols from DB
+    const planTitleSelect = document.getElementById('planTitleSelect');
+    const customTitleWrap = document.getElementById('customTitleWrap');
+    const customPlanTitle = document.getElementById('customPlanTitle');
+    const btnToggleCustom = document.getElementById('btnToggleCustomTitle');
 
-        const payload = {
-          patient_id: patientId,
-          title,
-          target_calories: calories,
-          breakfast,
-          lunch,
-          dinner
-        };
+    if (planTitleSelect) {
+      const titlesRes = await dietitianFetch('/dietitian/plan-titles');
+      const titles = titlesRes?.titles || [];
+      const templates = titlesRes?.templates || [];
 
-        const res = await dietitianFetch('/dietitian/meal-plans', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+      if (titles.length > 0) {
+        planTitleSelect.innerHTML = `
+          <option value="">-- Select a Plan Title from Database --</option>
+          <optgroup label="Clinical Regimens & Goal Protocols">
+            ${titles.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}
+          </optgroup>
+          <option value="__custom__">✨ Custom Plan Title (Write your own)...</option>
+        `;
+      }
 
-        if (res && res.success) {
-          SHD_Dietitian.showNotification(res.message, 'success');
-          form.reset();
+      planTitleSelect.addEventListener('change', function () {
+        if (this.value === '__custom__') {
+          if (customTitleWrap) {
+            customTitleWrap.style.display = 'block';
+            if (customPlanTitle) customPlanTitle.focus();
+          }
         } else {
-          SHD_Dietitian.showNotification(res?.message || 'Failed to publish meal plan', 'danger');
+          if (customTitleWrap && (!customPlanTitle || !customPlanTitle.value)) {
+            customTitleWrap.style.display = 'none';
+          }
+          // Check if template has default calories
+          const matched = templates.find(t => t.title === this.value);
+          if (matched && matched.defaultCalories) {
+            const calInput = document.getElementById('targetCalories');
+            if (calInput) calInput.value = matched.defaultCalories;
+          }
         }
       });
     }
+
+    if (btnToggleCustom && customTitleWrap) {
+      btnToggleCustom.addEventListener('click', function () {
+        const isHidden = customTitleWrap.style.display === 'none' || customTitleWrap.style.display === '';
+        customTitleWrap.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && customPlanTitle) {
+          customPlanTitle.focus();
+          if (planTitleSelect) planTitleSelect.value = '__custom__';
+        }
+      });
+    }
+
+    // 3. Load Food Catalog from Database
+    const categories = ['breakfast', 'lunch', 'dinner', 'snacks'];
+    const foodsRes = await dietitianFetch('/dietitian/foods');
+    allStoredFoods = foodsRes?.foods || [];
+
+    categories.forEach(cat => {
+      const picker = document.getElementById(`foodPicker_${cat}`);
+      if (!picker) return;
+
+      const catFoods = allStoredFoods.filter(f => f.category === cat);
+      const otherFoods = allStoredFoods.filter(f => f.category !== cat);
+
+      picker.innerHTML = `
+        <option value="">-- Choose Stored Food from Database (${cat.toUpperCase()}) --</option>
+        <optgroup label="Standard ${cat.toUpperCase()} Database Catalog (${catFoods.length} items)">
+          ${catFoods.map(f => `
+            <option value="${f.id}" data-name="${escapeHtml(f.name)}" data-cal="${f.calories}" data-p="${f.protein}" data-c="${f.carbs}" data-f="${f.fat}" data-portion="${escapeHtml(f.portion)}">
+              ${escapeHtml(f.name)} - ${escapeHtml(f.portion)} (${f.calories} kcal | P:${f.protein}g, C:${f.carbs}g, F:${f.fat}g)
+            </option>
+          `).join('')}
+        </optgroup>
+        <optgroup label="Other Available Database Foods (${otherFoods.length} items)">
+          ${otherFoods.map(f => `
+            <option value="${f.id}" data-name="${escapeHtml(f.name)}" data-cal="${f.calories}" data-p="${f.protein}" data-c="${f.carbs}" data-f="${f.fat}" data-portion="${escapeHtml(f.portion)}">
+              ${escapeHtml(f.name)} [${f.category}] - ${escapeHtml(f.portion)} (${f.calories} kcal)
+            </option>
+          `).join('')}
+        </optgroup>
+      `;
+    });
+
+    // 4. Meal Scope Selector (All vs Specific Meal Category)
+    const mealScopeSelect = document.getElementById('mealScopeSelect');
+    const scopePillTabs = document.getElementById('scopePillTabs');
+
+    function applyMealScope(scope) {
+      if (mealScopeSelect) mealScopeSelect.value = scope;
+
+      if (scopePillTabs) {
+        scopePillTabs.querySelectorAll('.scope-tab-pill').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.scope === scope);
+        });
+      }
+
+      categories.forEach(cat => {
+        const card = document.getElementById(`categoryCard_${cat}`);
+        if (!card) return;
+        if (scope === 'all' || scope === cat) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    if (mealScopeSelect) {
+      mealScopeSelect.addEventListener('change', function () {
+        applyMealScope(this.value);
+      });
+    }
+
+    if (scopePillTabs) {
+      scopePillTabs.addEventListener('click', function (e) {
+        const btn = e.target.closest('.scope-tab-pill');
+        if (btn && btn.dataset.scope) {
+          applyMealScope(btn.dataset.scope);
+        }
+      });
+    }
+
+    // 5. Render & Calculate Category Food Items
+    function renderCategoryItems(cat) {
+      const listEl = document.getElementById(`itemsList_${cat}`);
+      const items = selectedMealItems[cat] || [];
+
+      if (!listEl) return;
+
+      if (items.length === 0) {
+        listEl.innerHTML = `<div class="empty-meal-state">No ${cat} items selected yet. Choose from database foods above or add a custom recommendation.</div>`;
+      } else {
+        listEl.innerHTML = items.map((item, idx) => `
+          <div class="food-item-chip">
+            <div class="food-item-info">
+              <div class="food-item-title">${escapeHtml(item.name)} ${item.custom ? '<span class="badge badge-warning" style="font-size: 0.65rem; padding: 2px 6px;">Custom</span>' : ''}</div>
+              <div class="food-item-meta">
+                <span class="macro-pill cal" style="font-size: 0.75rem;">${item.calories} kcal</span>
+                ${item.portion ? `<span>Portion: ${escapeHtml(item.portion)}</span>` : ''}
+                ${item.protein ? `<span class="macro-pill protein" style="font-size: 0.7rem;">P: ${item.protein}g</span>` : ''}
+                ${item.carbs ? `<span class="macro-pill carbs" style="font-size: 0.7rem;">C: ${item.carbs}g</span>` : ''}
+                ${item.fat ? `<span class="macro-pill fat" style="font-size: 0.7rem;">F: ${item.fat}g</span>` : ''}
+              </div>
+            </div>
+            <button type="button" class="food-item-remove" data-cat="${cat}" data-idx="${idx}" title="Remove item">&times;</button>
+          </div>
+        `).join('');
+      }
+
+      // Update Category Badges
+      let catCals = 0, catP = 0, catC = 0, catF = 0;
+      items.forEach(it => {
+        catCals += Number(it.calories) || 0;
+        catP += Number(it.protein) || 0;
+        catC += Number(it.carbs) || 0;
+        catF += Number(it.fat) || 0;
+      });
+
+      const calBadge = document.getElementById(`calBadge_${cat}`);
+      const protBadge = document.getElementById(`protBadge_${cat}`);
+      const carbBadge = document.getElementById(`carbBadge_${cat}`);
+      const fatBadge = document.getElementById(`fatBadge_${cat}`);
+
+      if (calBadge) calBadge.textContent = `${catCals} kcal`;
+      if (protBadge) protBadge.textContent = `P: ${catP.toFixed(1)}g`;
+      if (carbBadge) carbBadge.textContent = `C: ${catC.toFixed(1)}g`;
+      if (fatBadge) fatBadge.textContent = `F: ${catF.toFixed(1)}g`;
+
+      // Update Grand Total Plan Nutrition
+      updateGrandTotals();
+    }
+
+    function updateGrandTotals() {
+      let totalCals = 0, totalP = 0, totalC = 0, totalF = 0;
+
+      categories.forEach(cat => {
+        (selectedMealItems[cat] || []).forEach(it => {
+          totalCals += Number(it.calories) || 0;
+          totalP += Number(it.protein) || 0;
+          totalC += Number(it.carbs) || 0;
+          totalF += Number(it.fat) || 0;
+        });
+      });
+
+      const totalCalsEl = document.getElementById('summaryTotalCals');
+      const totalProtEl = document.getElementById('summaryTotalProtein');
+      const totalCarbsEl = document.getElementById('summaryTotalCarbs');
+      const totalFatEl = document.getElementById('summaryTotalFat');
+      const syncBtn = document.getElementById('btnSyncTargetCals');
+
+      if (totalCalsEl) totalCalsEl.textContent = `${totalCals.toLocaleString()} kcal`;
+      if (totalProtEl) totalProtEl.textContent = `${totalP.toFixed(1)}g`;
+      if (totalCarbsEl) totalCarbsEl.textContent = `${totalC.toFixed(1)}g`;
+      if (totalFatEl) totalFatEl.textContent = `${totalF.toFixed(1)}g`;
+      if (syncBtn) syncBtn.textContent = `⚡ Sync Target Calories with Plan Total (${totalCals} kcal)`;
+    }
+
+    // 6. Handle Adding Food Items from Database
+    document.querySelectorAll('.btn-add-food').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const cat = this.dataset.category;
+        const picker = document.getElementById(`foodPicker_${cat}`);
+        if (!picker || !picker.value) {
+          SHD_Dietitian.showNotification(`Please select a food item from the ${cat} list first.`, 'warning');
+          return;
+        }
+
+        const opt = picker.selectedOptions[0];
+        const food = {
+          id: picker.value,
+          name: opt.dataset.name || opt.text,
+          portion: opt.dataset.portion || '',
+          calories: parseInt(opt.dataset.cal) || 0,
+          protein: parseFloat(opt.dataset.p) || 0,
+          carbs: parseFloat(opt.dataset.c) || 0,
+          fat: parseFloat(opt.dataset.f) || 0,
+          custom: false
+        };
+
+        selectedMealItems[cat].push(food);
+        picker.selectedIndex = 0; // reset selector
+        renderCategoryItems(cat);
+        SHD_Dietitian.showNotification(`Added "${food.name}" to ${cat}.`, 'success');
+      });
+    });
+
+    // 7. Handle Custom Food Builder Toggle & Add
+    document.querySelectorAll('.btn-toggle-custom').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const cat = this.dataset.category;
+        const box = document.getElementById(`customBox_${cat}`);
+        if (box) {
+          box.classList.toggle('open');
+          if (box.classList.contains('open')) {
+            const input = box.querySelector('.custom-food-name');
+            if (input) input.focus();
+          }
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-cancel-custom').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const cat = this.dataset.category;
+        const box = document.getElementById(`customBox_${cat}`);
+        if (box) box.classList.remove('open');
+      });
+    });
+
+    document.querySelectorAll('.btn-save-custom').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const cat = this.dataset.category;
+        const box = document.getElementById(`customBox_${cat}`);
+        if (!box) return;
+
+        const nameInput = box.querySelector('.custom-food-name');
+        const calInput = box.querySelector('.custom-food-cals');
+        const portionInput = box.querySelector('.custom-food-portion');
+
+        const name = (nameInput?.value || '').trim();
+        const cals = parseInt(calInput?.value) || 0;
+        const portion = (portionInput?.value || '').trim();
+
+        if (!name) {
+          SHD_Dietitian.showNotification('Please enter a name for the custom food or dish.', 'warning');
+          return;
+        }
+
+        selectedMealItems[cat].push({
+          name,
+          calories: cals,
+          portion,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          custom: true
+        });
+
+        // Clear and close
+        if (nameInput) nameInput.value = '';
+        if (calInput) calInput.value = '';
+        if (portionInput) portionInput.value = '';
+        box.classList.remove('open');
+
+        renderCategoryItems(cat);
+        SHD_Dietitian.showNotification(`Added custom item "${name}" to ${cat}.`, 'success');
+      });
+    });
+
+    // 8. Handle Removing Food Items (Event Delegation)
+    document.addEventListener('click', function (e) {
+      const rmBtn = e.target.closest('.food-item-remove');
+      if (rmBtn && rmBtn.dataset.cat && rmBtn.dataset.idx !== undefined) {
+        const cat = rmBtn.dataset.cat;
+        const idx = parseInt(rmBtn.dataset.idx);
+        if (selectedMealItems[cat] && selectedMealItems[cat][idx] !== undefined) {
+          const removed = selectedMealItems[cat].splice(idx, 1)[0];
+          renderCategoryItems(cat);
+          SHD_Dietitian.showNotification(`Removed "${removed.name}".`, 'info');
+        }
+      }
+    });
+
+    // 9. Sync Target Calories Button
+    const syncBtn = document.getElementById('btnSyncTargetCals');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', function () {
+        let totalCals = 0;
+        categories.forEach(cat => {
+          (selectedMealItems[cat] || []).forEach(it => {
+            totalCals += Number(it.calories) || 0;
+          });
+        });
+        const targetCalInput = document.getElementById('targetCalories');
+        if (targetCalInput) {
+          targetCalInput.value = totalCals > 0 ? totalCals : 2000;
+          SHD_Dietitian.showNotification(`Target daily calories synchronized to plan total (${targetCalInput.value} kcal)!`, 'success');
+        }
+      });
+    }
+
+    // 10. Form Submission
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const patientId = selectPatient?.value;
+      if (!patientId) {
+        SHD_Dietitian.showNotification('Please select an assigned patient.', 'danger');
+        return;
+      }
+
+      // Determine Plan Title
+      let resolvedTitle = '';
+      if (customTitleWrap && customTitleWrap.style.display !== 'none' && customPlanTitle?.value.trim()) {
+        resolvedTitle = customPlanTitle.value.trim();
+      } else if (planTitleSelect && planTitleSelect.value && planTitleSelect.value !== '__custom__') {
+        resolvedTitle = planTitleSelect.value;
+      } else if (customPlanTitle?.value.trim()) {
+        resolvedTitle = customPlanTitle.value.trim();
+      }
+
+      if (!resolvedTitle) {
+        SHD_Dietitian.showNotification('Please select a plan title or enter a custom title.', 'danger');
+        if (planTitleSelect) planTitleSelect.focus();
+        return;
+      }
+
+      const targetCalories = parseInt(document.getElementById('targetCalories')?.value) || 2000;
+      const startDate = document.getElementById('startDate')?.value || null;
+      const endDate = document.getElementById('endDate')?.value || null;
+
+      // Compile items array
+      const items = [];
+      categories.forEach(cat => {
+        (selectedMealItems[cat] || []).forEach((item, idx) => {
+          let recText = item.name;
+          if (item.portion) recText += ` (${item.portion})`;
+          recText += ` [${item.calories} kcal`;
+          if (item.protein || item.carbs || item.fat) {
+            recText += `, P:${item.protein}g, C:${item.carbs}g, F:${item.fat}g`;
+          }
+          recText += `]`;
+
+          items.push({
+            category: cat,
+            recommendation: recText,
+            sort_order: idx
+          });
+        });
+      });
+
+      if (items.length === 0) {
+        SHD_Dietitian.showNotification('Please add at least one food item or recommendation before publishing.', 'warning');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitMealPlanBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Publishing Meal Plan...';
+      }
+
+      const payload = {
+        patient_id: patientId,
+        title: resolvedTitle,
+        target_calories: targetCalories,
+        start_date: startDate,
+        end_date: endDate,
+        items
+      };
+
+      const res = await dietitianFetch('/dietitian/meal-plans', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Publish & Assign Meal Plan →';
+      }
+
+      if (res && res.success) {
+        SHD_Dietitian.showNotification(res.message || 'Meal plan created and assigned successfully!', 'success');
+        // Reset selections
+        categories.forEach(cat => {
+          selectedMealItems[cat] = [];
+          renderCategoryItems(cat);
+        });
+        if (customPlanTitle) customPlanTitle.value = '';
+        if (customTitleWrap) customTitleWrap.style.display = 'none';
+        if (planTitleSelect) planTitleSelect.selectedIndex = 0;
+      } else {
+        SHD_Dietitian.showNotification(res?.message || 'Failed to publish meal plan.', 'danger');
+      }
+    });
+
+    // Initial render of empty state
+    categories.forEach(cat => renderCategoryItems(cat));
   }
 
   /* ==========================================================================

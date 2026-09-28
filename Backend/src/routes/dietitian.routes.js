@@ -7,8 +7,11 @@ import {
     requestVerification,
     getDietitianDashboard,
     getAssignedPatients,
+    getPatientAdherenceDetails,
     getGuidanceRequests,
     updateGuidanceRequestStatus,
+    getFoodItems,
+    getPlanTitlesAndTemplates,
     createDietitianMealPlan,
     createDietitianRecipe
 } from "../controllers/dietitian.controller.js";
@@ -29,15 +32,20 @@ router.get("/dashboard", getDietitianDashboard);
 
 // 3. Patients
 router.get("/patients", getAssignedPatients);
+router.get("/patients/:patientId/adherence", getPatientAdherenceDetails);
 
 // 4. Guidance Requests
 router.get("/guidance-requests", getGuidanceRequests);
 router.patch("/guidance-requests/:id", updateGuidanceRequestStatus);
 
-// 5. Meal Plans
+// 5. Food Catalog & Plan Titles
+router.get("/foods", getFoodItems);
+router.get("/plan-titles", getPlanTitlesAndTemplates);
+
+// 6. Meal Plans
 router.post("/meal-plans", createDietitianMealPlan);
 
-// 6. Recipes & Guides
+// 7. Recipes & Guides
 router.post("/recipes", createDietitianRecipe);
 
 export default router;

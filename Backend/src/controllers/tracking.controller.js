@@ -4,17 +4,25 @@ import pool from "../config/db.js";
 export const logMeal = async (req, res) => {
     try {
         const userId = req.account.id;
-        const { category, meal_name, calories, food_item_id, recipe_id } = req.body;
-        const normalizedCategory = String(category || '').toLowerCase() === 'snack' ? 'snacks' : String(category || '').toLowerCase();
-        // logged_for defaults to CURRENT_DATE in DB, logged_at to CURRENT_TIMESTAMP
+        const { category, meal_name, calories, food_item_id, recipe_id, is_extra, notes } = req.body;
+        const cat = String(category || '').toLowerCase().trim();
+        const normalizedCategory = (cat === 'snack' || cat === 'snacks') ? 'snacks' : (['breakfast', 'lunch', 'dinner'].includes(cat) ? cat : 'snacks');
+        
+        const validUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+        const cleanFoodId = (food_item_id && validUuid.test(food_item_id)) ? food_item_id : null;
+        const cleanRecipeId = (recipe_id && validUuid.test(recipe_id)) ? recipe_id : null;
+        const cleanCalories = Math.max(0, parseInt(calories, 10) || 0);
+        const cleanMealName = String(meal_name || '').trim() || 'Logged Meal';
+        const cleanIsExtra = Boolean(is_extra);
+        const cleanNotes = notes ? String(notes).trim() : null;
 
         const result = await pool.query(
             `
-            INSERT INTO meal_logs (user_id, category, meal_name, calories, food_item_id, recipe_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO meal_logs (user_id, category, meal_name, calories, food_item_id, recipe_id, is_extra, notes)
+            VALUES ($1, $2::meal_category, $3, $4, $5, $6, $7, $8)
             RETURNING *;
             `,
-            [userId, normalizedCategory, meal_name, calories, food_item_id || null, recipe_id || null]
+            [userId, normalizedCategory, cleanMealName, cleanCalories, cleanFoodId, cleanRecipeId, cleanIsExtra, cleanNotes]
         );
 
         return res.status(201).json({
@@ -53,7 +61,7 @@ export const getMealsByDate = async (req, res) => {
         const userId = req.account.id;
         const { date } = req.query; // optional, defaults to today
         
-        let query = `SELECT * FROM meal_logs WHERE user_id = $1`;
+        let query = `SELECT id, user_id, logged_for, category, meal_name, calories, food_item_id, recipe_id, is_extra, notes, logged_at FROM meal_logs WHERE user_id = $1`;
         const params = [userId];
 
         if (date) {
@@ -269,20 +277,63 @@ export const getDashboardSummary = async (req, res) => {
     try {
         const userId = req.account.id;
         
-        // 1. Profile goals
-        const profileResult = await pool.query(
-            `SELECT daily_calorie_target, water_target_liters FROM user_profiles WHERE account_id = $1`,
-            [userId]
-        );
-        const profile = profileResult.rows.length > 0 ? profileResult.rows[0] : { daily_calorie_target: 2000, water_target_liters: 2.5 };
+        // 1. Profile goals & active meal plan
+        const [profileResult, activePlanResult] = await Promise.all([
+            pool.query(
+                `SELECT daily_calorie_target, water_target_liters FROM user_profiles WHERE account_id = $1`,
+                [userId]
+            ),
+            pool.query(
+                `SELECT mp.id, mp.title, mp.target_calories, mp.start_date, mp.end_date, mp.status,
+                        a.full_name AS dietitian_name, dp.specialty AS dietitian_specialty,
+                        COALESCE(json_agg(
+                            json_build_object(
+                                'id', mpi.id,
+                                'category', mpi.category,
+                                'recommendation', mpi.recommendation,
+                                'sort_order', mpi.sort_order
+                            ) ORDER BY mpi.sort_order
+                        ) FILTER (WHERE mpi.id IS NOT NULL), '[]') AS items
+                 FROM meal_plans mp
+                 JOIN accounts a ON a.id = mp.dietitian_id
+                 LEFT JOIN dietitian_profiles dp ON dp.account_id = a.id
+                 LEFT JOIN meal_plan_items mpi ON mpi.meal_plan_id = mp.id
+                 WHERE mp.patient_id = $1 AND mp.status = 'active'
+                 GROUP BY mp.id, a.full_name, dp.specialty
+                 ORDER BY mp.created_at DESC
+                 LIMIT 1`,
+                [userId]
+            )
+        ]);
 
-        // 2. Today's meals & calories
+        const profile = profileResult.rows.length > 0 ? profileResult.rows[0] : { daily_calorie_target: 2000, water_target_liters: 2.5 };
+        const activePlan = activePlanResult.rows.length > 0 ? activePlanResult.rows[0] : null;
+
+        // 2. Today's meals & calories breakdown
         const mealsResult = await pool.query(
-            `SELECT category, meal_name, calories, logged_at FROM meal_logs WHERE user_id = $1 AND logged_for = CURRENT_DATE ORDER BY logged_at DESC`,
+            `SELECT id, category, meal_name, calories, is_extra, notes, logged_at 
+             FROM meal_logs 
+             WHERE user_id = $1 AND logged_for = CURRENT_DATE 
+             ORDER BY logged_at DESC`,
             [userId]
         );
         const meals = mealsResult.rows;
-        const totalCalories = meals.reduce((sum, meal) => sum + parseInt(meal.calories), 0);
+
+        let regularCalories = 0;
+        let extraCalories = 0;
+        let extraCount = 0;
+
+        for (const m of meals) {
+            const cal = parseInt(m.calories, 10) || 0;
+            if (m.is_extra) {
+                extraCalories += cal;
+                extraCount++;
+            } else {
+                regularCalories += cal;
+            }
+        }
+        const totalCalories = regularCalories + extraCalories;
+        const targetCalories = activePlan?.target_calories || profile.daily_calorie_target || 2000;
 
         // 3. Today's water
         const waterResult = await pool.query(
@@ -298,13 +349,27 @@ export const getDashboardSummary = async (req, res) => {
         );
         const sleep = sleepResult.rows.length > 0 ? sleepResult.rows[0] : { duration_hours: 0, quality_score: 0 };
 
+        // Adherence status
+        let adherenceStatus = 'maintained';
+        if (meals.length === 0) {
+            adherenceStatus = 'no_logs';
+        } else if (extraCount > 0 || extraCalories > 0) {
+            adherenceStatus = 'extra_reported';
+        } else if (totalCalories > targetCalories + 50) {
+            adherenceStatus = 'exceeded';
+        }
+
         return res.status(200).json({
             success: true,
             data: {
                 calories: {
                     consumed: totalCalories,
-                    target: profile.daily_calorie_target || 2000
+                    regular: regularCalories,
+                    extra: extraCalories,
+                    target: targetCalories
                 },
+                adherenceStatus,
+                activeMealPlan: activePlan,
                 water: {
                     consumed: water,
                     target: profile.water_target_liters || 2.5
