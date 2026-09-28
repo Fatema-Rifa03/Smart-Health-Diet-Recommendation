@@ -178,8 +178,11 @@ export const login = async (req, res) => {
                 status,
                 password_hash,
                 joined_at,
-                last_login_at
+                last_login_at,
+                COALESCE(up.avatar_url, dp.avatar_url) AS avatar_url
             FROM accounts
+            LEFT JOIN user_profiles up ON accounts.id = up.account_id
+            LEFT JOIN dietitian_profiles dp ON accounts.id = dp.account_id
             WHERE email = $1
             `,
             [normalizedEmail]
@@ -235,7 +238,8 @@ export const login = async (req, res) => {
                 full_name: account.full_name,
                 email: account.email,
                 role: account.role,
-                status: account.status
+                status: account.status,
+                avatar_url: account.avatar_url || null
             },
             session: {
                 access_token: token
