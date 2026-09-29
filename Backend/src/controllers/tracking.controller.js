@@ -89,26 +89,30 @@ export const getMealsByDate = async (req, res) => {
 export const logWater = async (req, res) => {
     try {
         const userId = req.account.id;
-        const { amount_liters } = req.body;
+        const { amount_liters, log_date } = req.body;
 
         // Get target from profile
         const profileResult = await pool.query(
             `SELECT water_target_liters FROM user_profiles WHERE account_id = $1`,
             [userId]
         );
-        const target_liters = profileResult.rows.length > 0 ? profileResult.rows[0].water_target_liters : 2.50;
+        const target_liters = profileResult.rows.length > 0 && profileResult.rows[0].water_target_liters 
+            ? profileResult.rows[0].water_target_liters 
+            : 2.50;
 
-        // Upsert water log for today
+        const targetDate = log_date || null;
+
+        // Upsert water log for date
         const result = await pool.query(
             `
             INSERT INTO water_logs (user_id, log_date, amount_liters, target_liters)
-            VALUES ($1, CURRENT_DATE, $2, $3)
+            VALUES ($1, COALESCE($2::DATE, CURRENT_DATE), $3, $4)
             ON CONFLICT (user_id, log_date) DO UPDATE SET
                 amount_liters = water_logs.amount_liters + EXCLUDED.amount_liters,
                 updated_at = CURRENT_TIMESTAMP
             RETURNING *;
             `,
-            [userId, amount_liters, target_liters]
+            [userId, targetDate, amount_liters, target_liters]
         );
 
         return res.status(200).json({
@@ -150,11 +154,161 @@ export const getWater = async (req, res) => {
 
 export const resetWater = async (req, res) => {
     try {
-        await pool.query(`DELETE FROM water_logs WHERE user_id = $1 AND log_date = CURRENT_DATE`, [req.account.id]);
+        const targetDate = req.query.date || null;
+        await pool.query(
+            `DELETE FROM water_logs WHERE user_id = $1 AND log_date = COALESCE($2::DATE, CURRENT_DATE)`,
+            [req.account.id, targetDate]
+        );
         return res.status(204).send();
     } catch (error) {
         console.error("Error resetting water:", error);
         return res.status(500).json({ success: false, message: "Failed to reset water" });
+    }
+};
+
+export const getMonthlyWater = async (req, res) => {
+    try {
+        const userId = req.account.id;
+        let monthParam = (req.query.month || "").trim(); // "YYYY-MM"
+        
+        const now = new Date();
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+        if (!/^\d{4}-\d{2}$/.test(monthParam)) {
+            monthParam = currentMonthKey;
+        }
+
+        const [yearStr, monthStr] = monthParam.split("-");
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10); // 1 - 12
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const startDate = `${yearStr}-${monthStr.padStart(2, "0")}-01`;
+        const endDate = `${yearStr}-${monthStr.padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+        // Get user water target
+        const profileResult = await pool.query(
+            `SELECT water_target_liters FROM user_profiles WHERE account_id = $1`,
+            [userId]
+        );
+        const defaultTarget = profileResult.rows.length > 0 && profileResult.rows[0].water_target_liters 
+            ? parseFloat(profileResult.rows[0].water_target_liters) 
+            : 2.50;
+
+        // Query daily water logs for this month
+        const dailyLogsResult = await pool.query(
+            `
+            SELECT 
+                TO_CHAR(log_date, 'YYYY-MM-DD') AS date,
+                EXTRACT(DAY FROM log_date)::INTEGER AS day_number,
+                amount_liters::NUMERIC(6, 2)::FLOAT AS amount_liters,
+                target_liters::NUMERIC(6, 2)::FLOAT AS target_liters,
+                updated_at
+            FROM water_logs
+            WHERE user_id = $1 
+              AND log_date >= $2::DATE 
+              AND log_date <= $3::DATE
+            ORDER BY log_date ASC
+            `,
+            [userId, startDate, endDate]
+        );
+
+        // Fetch monthly historical summary for user from user_monthly_water_summary view
+        const historyResult = await pool.query(
+            `
+            SELECT 
+                month_key,
+                month_label,
+                total_liters,
+                avg_daily_liters,
+                avg_target_liters,
+                days_logged,
+                days_target_met,
+                max_daily_liters
+            FROM user_monthly_water_summary
+            WHERE user_id = $1
+            ORDER BY month_key DESC
+            LIMIT 12
+            `,
+            [userId]
+        );
+
+        const logsMap = new Map();
+        dailyLogsResult.rows.forEach(row => {
+            logsMap.set(row.day_number, row);
+        });
+
+        const dailyBreakdown = [];
+        let totalLiters = 0;
+        let daysLogged = 0;
+        let daysTargetMet = 0;
+        let bestDay = null;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${yearStr}-${monthStr.padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const dayDate = new Date(year, month - 1, d);
+            const dayName = dayDate.toLocaleDateString("en-US", { weekday: "short" });
+            const logged = logsMap.get(d);
+            const amount = logged ? parseFloat(logged.amount_liters) : 0;
+            const target = logged ? parseFloat(logged.target_liters) : defaultTarget;
+            const isLogged = !!logged && amount > 0;
+            const targetMet = isLogged && amount >= target;
+
+            if (isLogged) {
+                totalLiters += amount;
+                daysLogged += 1;
+                if (targetMet) daysTargetMet += 1;
+                if (!bestDay || amount > bestDay.amount_liters) {
+                    bestDay = { day: d, date: dateStr, amount_liters: amount };
+                }
+            }
+
+            dailyBreakdown.push({
+                day: d,
+                date: dateStr,
+                day_name: dayName,
+                amount_liters: amount,
+                target_liters: target,
+                is_logged: isLogged,
+                target_met: targetMet,
+                percentage: target > 0 ? Math.min(200, Math.round((amount / target) * 100)) : 0
+            });
+        }
+
+        const avgDailyLiters = daysLogged > 0 ? parseFloat((totalLiters / daysLogged).toFixed(2)) : 0;
+        const completionRate = daysLogged > 0 ? Math.round((daysTargetMet / daysLogged) * 100) : 0;
+
+        // Month list for selection: combine current month with any distinct months in logs
+        const availableMonthsSet = new Set();
+        availableMonthsSet.add(currentMonthKey);
+        availableMonthsSet.add(monthParam);
+        historyResult.rows.forEach(h => availableMonthsSet.add(h.month_key));
+        const availableMonths = Array.from(availableMonthsSet).sort().reverse();
+
+        const monthDate = new Date(year, month - 1, 1);
+        const monthLabel = monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+        return res.status(200).json({
+            success: true,
+            month: monthParam,
+            month_label: monthLabel,
+            days_in_month: daysInMonth,
+            summary: {
+                total_liters: parseFloat(totalLiters.toFixed(2)),
+                avg_daily_liters: avgDailyLiters,
+                target_liters: defaultTarget,
+                days_logged: daysLogged,
+                days_target_met: daysTargetMet,
+                completion_rate: completionRate,
+                best_day: bestDay
+            },
+            daily_breakdown: dailyBreakdown,
+            history: historyResult.rows,
+            available_months: availableMonths
+        });
+
+    } catch (error) {
+        console.error("Error fetching monthly water:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch monthly water intake" });
     }
 };
 
@@ -208,6 +362,164 @@ export const getSleepLogs = async (req, res) => {
     } catch (error) {
         console.error("Error fetching sleep logs:", error);
         return res.status(500).json({ success: false, message: "Failed to fetch sleep logs" });
+    }
+};
+
+export const getMonthlySleep = async (req, res) => {
+    try {
+        const userId = req.account.id;
+        let monthParam = (req.query.month || "").trim(); // "YYYY-MM"
+        
+        const now = new Date();
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+        if (!/^\d{4}-\d{2}$/.test(monthParam)) {
+            monthParam = currentMonthKey;
+        }
+
+        const [yearStr, monthStr] = monthParam.split("-");
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10); // 1 - 12
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const startDate = `${yearStr}-${monthStr.padStart(2, "0")}-01`;
+        const endDate = `${yearStr}-${monthStr.padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+
+        // Get user sleep target from profile
+        const profileResult = await pool.query(
+            `SELECT sleep_target_hours FROM user_profiles WHERE account_id = $1`,
+            [userId]
+        );
+        const targetHours = profileResult.rows.length > 0 && profileResult.rows[0].sleep_target_hours 
+            ? parseFloat(profileResult.rows[0].sleep_target_hours) 
+            : 8.00;
+
+        // Query daily sleep logs for this month from the existing sleep_logs table
+        const dailyLogsResult = await pool.query(
+            `
+            SELECT 
+                TO_CHAR(date, 'YYYY-MM-DD') AS date,
+                EXTRACT(DAY FROM date)::INTEGER AS day_number,
+                duration_hours::NUMERIC(4, 2)::FLOAT AS duration_hours,
+                quality_score::INTEGER AS quality_score,
+                bedtime,
+                wake_time,
+                notes
+            FROM sleep_logs
+            WHERE user_id = $1 
+              AND date >= $2::DATE 
+              AND date <= $3::DATE
+            ORDER BY date ASC
+            `,
+            [userId, startDate, endDate]
+        );
+
+        // Fetch monthly historical summary for user
+        const historyResult = await pool.query(
+            `
+            SELECT 
+                TO_CHAR(date, 'YYYY-MM') AS month_key,
+                TO_CHAR(DATE_TRUNC('month', date), 'FMMonth YYYY') AS month_label,
+                ROUND(SUM(duration_hours), 1)::FLOAT AS total_sleep_hours,
+                ROUND(AVG(duration_hours), 2)::FLOAT AS avg_duration_hours,
+                ROUND(AVG(quality_score), 1)::FLOAT AS avg_quality_score,
+                COUNT(DISTINCT date)::INTEGER AS days_logged,
+                COUNT(CASE WHEN duration_hours >= $2 THEN 1 END)::INTEGER AS days_target_met,
+                ROUND(MAX(duration_hours), 1)::FLOAT AS max_duration_hours
+            FROM sleep_logs
+            WHERE user_id = $1
+            GROUP BY user_id, DATE_TRUNC('month', date), TO_CHAR(date, 'YYYY-MM')
+            ORDER BY month_key DESC
+            LIMIT 12
+            `,
+            [userId, targetHours]
+        );
+
+        const logsMap = new Map();
+        dailyLogsResult.rows.forEach(r => logsMap.set(r.day_number, r));
+
+        const dailyBreakdown = [];
+        let totalHours = 0;
+        let totalQuality = 0;
+        let daysLogged = 0;
+        let daysTargetMet = 0;
+        let optimalDays = 0;
+        let bestNight = null;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${yearStr}-${monthStr.padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            const dayDate = new Date(year, month - 1, d);
+            const dayName = dayDate.toLocaleDateString("en-US", { weekday: "short" });
+            const logged = logsMap.get(d);
+            const duration = logged ? parseFloat(logged.duration_hours) : 0;
+            const quality = logged && logged.quality_score !== null ? parseInt(logged.quality_score, 10) : null;
+            const isLogged = !!logged && duration > 0;
+            const targetMet = isLogged && duration >= targetHours;
+
+            if (isLogged) {
+                totalHours += duration;
+                if (quality !== null) totalQuality += quality;
+                daysLogged += 1;
+                if (targetMet) daysTargetMet += 1;
+                if (quality !== null && quality >= 80) optimalDays += 1;
+                if (!bestNight || (quality && quality > (bestNight.quality_score || 0)) || duration > bestNight.duration_hours) {
+                    bestNight = { day: d, date: dateStr, duration_hours: duration, quality_score: quality };
+                }
+            }
+
+            dailyBreakdown.push({
+                day: d,
+                date: dateStr,
+                day_name: dayName,
+                duration_hours: duration,
+                quality_score: quality,
+                bedtime: logged?.bedtime || null,
+                wake_time: logged?.wake_time || null,
+                notes: logged?.notes || '',
+                is_logged: isLogged,
+                target_met: targetMet,
+                target_hours: targetHours,
+                percentage: targetHours > 0 ? Math.min(200, Math.round((duration / targetHours) * 100)) : 0
+            });
+        }
+
+        const avgDuration = daysLogged > 0 ? parseFloat((totalHours / daysLogged).toFixed(2)) : 0;
+        const avgQuality = daysLogged > 0 ? Math.round(totalQuality / daysLogged) : 0;
+        const completionRate = daysLogged > 0 ? Math.round((daysTargetMet / daysLogged) * 100) : 0;
+
+        const availableMonthsSet = new Set();
+        availableMonthsSet.add(currentMonthKey);
+        availableMonthsSet.add(monthParam);
+        historyResult.rows.forEach(h => availableMonthsSet.add(h.month_key));
+        const availableMonths = Array.from(availableMonthsSet).sort().reverse();
+
+        const monthDate = new Date(year, month - 1, 1);
+        const monthLabel = monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+        return res.status(200).json({
+            success: true,
+            month: monthParam,
+            month_label: monthLabel,
+            days_in_month: daysInMonth,
+            target_hours: targetHours,
+            summary: {
+                total_sleep_hours: parseFloat(totalHours.toFixed(1)),
+                avg_duration_hours: avgDuration,
+                avg_quality_score: avgQuality,
+                target_hours: targetHours,
+                days_logged: daysLogged,
+                days_target_met: daysTargetMet,
+                optimal_days: optimalDays,
+                completion_rate: completionRate,
+                best_night: bestNight
+            },
+            daily_breakdown: dailyBreakdown,
+            history: historyResult.rows,
+            available_months: availableMonths
+        });
+
+    } catch (error) {
+        console.error("Error fetching monthly sleep logs:", error);
+        return res.status(500).json({ success: false, message: "Failed to fetch monthly sleep logs" });
     }
 };
 

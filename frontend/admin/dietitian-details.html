@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dietitian Details & Patient Control - Admin Panel</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <style>
+    .details-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      color: #fff;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .details-hero::after {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      object-fit: cover;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    .hero-meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+    }
+    .tab-btn {
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover {
+      color: var(--primary);
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.25s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .progress-bar-bg {
+      background: #e2e8f0;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--primary-gradient);
+      transition: width 0.4s ease;
+    }
+    .badge-pill {
+      border-radius: 9999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .dietitian-selector-wrapper {
+      min-width: 280px;
+    }
+    .form-section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body class="admin-page">
+
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-brand">
+          <img src="../assets/images/logo.jpg" alt="Logo">
+          <div>
+            <span class="sidebar-brand-text">Admin Panel</span>
+            <span class="text-xs text-muted block font-medium">& System Control</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <a href="dashboard.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            System Overview
+          </a>
+          <a href="users.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            User Account Management
+          </a>
+          <a href="dietitian-approvals.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Approve Dietitians
+          </a>
+          <a href="dietitian-details.html" class="sidebar-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Dietitian Details & Control
+          </a>
+          <a href="food-database.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Food Database Manager
+          </a>
+          <a href="system-reports.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            System Reports (PDF)
+          </a>
+          <a href="settings.html" class="sidebar-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            System Settings & Audit
+          </a>
+        </nav>
+      </div>
+
+      <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+        <a href="../auth/login.html" class="sidebar-link text-danger" onclick="localStorage.removeItem('shd_token'); localStorage.removeItem('shd_current_user')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="9"/></svg>
+          Sign Out
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      
+      <!-- Top Header -->
+      <header class="top-header">
+        <h1 class="text-xl font-bold admin-page-title">Dietitian Management & Client Control</h1>
+
+        <div class="flex items-center gap-4">
+          <!-- Dietitian Switcher Dropdown -->
+          <div class="dietitian-selector-wrapper">
+            <select id="dietitianSwitcher" class="form-control" style="padding: 6px 12px; font-size: 0.875rem; border-color: var(--primary);">
+              <option value="">Select a Dietitian...</option>
+            </select>
+          </div>
+
+          <div class="user-profile-menu">
+            <div class="admin-profile-copy">
+              <span class="font-bold text-sm block">System Administrator</span>
+              <span class="badge badge-danger">Super Admin</span>
+            </div>
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-content">
+
+        <!-- Loading State Indicator -->
+        <div id="dietitianLoadingState" class="card text-center" style="padding: 48px;">
+          <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-muted);">
+            Loading dietitian details and patient assignment records...
+          </div>
+        </div>
+
+        <!-- No Dietitians Fallback -->
+        <div id="noDietitianState" class="card text-center" style="display: none; padding: 48px;">
+          <h3 class="text-lg font-bold" style="margin-bottom: 8px;">No Dietitians Registered Yet</h3>
+          <p class="text-muted" style="margin-bottom: 20px;">There are currently no dietitian accounts in the system.</p>
+          <a href="dietitian-approvals.html" class="btn btn-primary btn-sm">Go to Dietitian Registrations</a>
+        </div>
+
+        <!-- Main Details Container -->
+        <div id="dietitianDetailsContainer" style="display: none;">
+
+          <!-- 1. Profile Hero & Master Actions -->
+          <div class="details-hero">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              
+              <div class="flex items-center gap-5">
+                <img id="dietitianHeroAvatar" src="https://images.unsplash.com/photo-1594824813566-78a933f2c38f?w=150" alt="Dietitian Avatar" class="hero-avatar">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2" style="margin-bottom: 6px;">
+                    <h2 id="dietitianHeroName" class="text-2xl font-bold" style="margin: 0;">Dietitian Name</h2>
+                    <span id="dietitianAccountStatusBadge" class="badge badge-success">Active Account</span>
+                    <span id="dietitianProfileStatusBadge" class="badge badge-primary">Approved</span>
+                  </div>
+
+                  <p id="dietitianHeroSpecialty" class="text-sm" style="color: #cbd5e1; margin-bottom: 10px;">Clinical Nutrition & Weight Management</p>
+
+                  <div class="flex flex-wrap gap-2 text-xs">
+                    <span class="hero-meta-badge" id="dietitianEmailBadge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      <span id="dietitianHeroEmail">email@example.com</span>
+                    </span>
+                    <span class="hero-meta-badge" id="dietitianPhoneBadge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      <span id="dietitianHeroPhone">Not provided</span>
+                    </span>
+                    <span class="hero-meta-badge" id="dietitianLicenseBadge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <span id="dietitianHeroLicense">License: N/A</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Master Controls -->
+              <div class="flex flex-col sm:flex-row gap-3">
+                <!-- Live Deactivate / Activate Button -->
+                <button id="toggleStatusBtn" class="btn btn-sm" style="font-weight: 700; min-width: 170px;" onclick="window.SHD_DietitianDetails.toggleDietitianStatus()">
+                  Deactivate Profile
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="window.SHD_DietitianDetails.openAssignModal()">
+                  + Assign New Client
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 2. Overview Stat Cards -->
+          <div class="grid grid-4 gap-4" style="margin-bottom: 28px;">
+            <div class="stat-card">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="stat-label">Controlled Clients</span>
+                  <div class="stat-value" id="statControlledUsers">0</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--primary);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs text-muted" style="margin-top: 8px;">
+                  <span>Capacity: <strong id="statCapacityText">0 / 50</strong></span>
+                  <span id="statCapacityPercent">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="statCapacityBar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="stat-label">Active Meal Plans</span>
+                  <div class="stat-value" id="statActiveMealPlans">0</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                </div>
+              </div>
+              <div class="text-xs text-muted" style="margin-top: 12px;">
+                Tailored clinical nutrition plans
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="stat-label">Dietitian Rating</span>
+                  <div class="stat-value" id="statRating" style="color: #eab308;">★ 5.0</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(234, 179, 8, 0.1); color: #eab308;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+              </div>
+              <div class="text-xs text-muted" style="margin-top: 12px;">
+                Average patient satisfaction score
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="stat-label">Fee & Experience</span>
+                  <div class="stat-value" id="statFee" style="font-size: 1.5rem;">$0.00</div>
+                </div>
+                <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="text-xs text-muted" style="margin-top: 12px;" id="statExperienceText">
+                3 Years Clinical Practice
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Controlled Users Table Section (CORE REQUIREMENT) -->
+          <div class="card" style="margin-bottom: 28px;">
+            <div class="card-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 class="card-title">Controlled Patients & Clients</h2>
+                <p class="text-xs text-muted">All users actively managed, coached, or assigned under this dietitian</p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div class="search-bar" style="max-width: 260px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="controlledUserSearch" placeholder="Filter controlled clients...">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="window.SHD_DietitianDetails.openAssignModal()">
+                  + Assign Client
+                </button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Patient Details</th>
+                    <th>Age / Gender</th>
+                    <th>Current & Target Weight</th>
+                    <th>Primary Goal & Limit</th>
+                    <th>Active Meal Plan</th>
+                    <th>Status</th>
+                    <th>Assigned Date</th>
+                    <th>Admin Action</th>
+                  </tr>
+                </thead>
+                <tbody id="controlledUsersTableBody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 4. Important Settings & Management Tabs Section -->
+          <div class="card" style="margin-bottom: 28px;">
+            <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0;">
+              <div class="flex gap-4">
+                <button class="tab-btn active" onclick="window.SHD_DietitianDetails.switchTab('tabProfile', this)">Profile & Credentials</button>
+                <button class="tab-btn" onclick="window.SHD_DietitianDetails.switchTab('tabPractice', this)">Capacity & Fees</button>
+                <button class="tab-btn" onclick="window.SHD_DietitianDetails.switchTab('tabLifecycle', this)">Lifecycle & Verification</button>
+                <button class="tab-btn" onclick="window.SHD_DietitianDetails.switchTab('tabSecurity', this)">Account Security & Password</button>
+                <button class="tab-btn" onclick="window.SHD_DietitianDetails.switchTab('tabAudit', this)">Audit Activity</button>
+              </div>
+            </div>
+
+            <div style="padding: 24px;">
+
+              <!-- Tab 1: Profile & Credentials -->
+              <div id="tabProfile" class="tab-panel active">
+                <form id="dietitianProfileForm">
+                  <div class="form-section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Personal & Professional Credentials
+                  </div>
+
+                  <div class="grid grid-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianName">Full Name & Title *</label>
+                      <input type="text" id="editDietitianName" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianEmail">Email Address (Login ID) *</label>
+                      <input type="email" id="editDietitianEmail" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianSpecialty">Specialty Focus *</label>
+                      <input type="text" id="editDietitianSpecialty" class="form-control" placeholder="e.g. Clinical Nutrition, Sports Dietetics" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianExperience">Experience (Years) *</label>
+                      <input type="number" step="0.5" id="editDietitianExperience" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianQualification">Qualification & Certifications</label>
+                      <input type="text" id="editDietitianQualification" class="form-control" placeholder="e.g. M.Sc. Clinical Nutrition, RD Certified">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianLicense">Medical / State License Number</label>
+                      <input type="text" id="editDietitianLicense" class="form-control" placeholder="e.g. RD-NY-98421">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianPhone">Direct Contact Phone</label>
+                      <input type="text" id="editDietitianPhone" class="form-control" placeholder="e.g. +1 (555) 234-5678">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editDietitianAvatar">Avatar Photo URL</label>
+                      <input type="url" id="editDietitianAvatar" class="form-control" placeholder="https://images.unsplash.com/...">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="editDietitianBio">Dietitian Professional Bio & Approach</label>
+                    <textarea id="editDietitianBio" class="form-control" rows="3" placeholder="Provide background information, clinical philosophy, and expertise..."></textarea>
+                  </div>
+
+                  <div class="flex justify-end gap-3" style="margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary">
+                      Save Profile & Credentials
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab 2: Capacity & Fees -->
+              <div id="tabPractice" class="tab-panel">
+                <form id="dietitianPracticeForm">
+                  <div class="form-section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Practice Capacity & Consultation Fees
+                  </div>
+
+                  <div class="grid grid-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="editMaxClients">Maximum Patient Capacity</label>
+                      <input type="number" id="editMaxClients" class="form-control" min="1" max="500" value="50" required>
+                      <span class="text-xs text-muted">Controls how many active patients this dietitian can be assigned simultaneously.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editConsultationFee">Consultation Fee (USD $)</label>
+                      <input type="number" step="0.01" id="editConsultationFee" class="form-control" min="0" placeholder="0.00" value="0.00">
+                      <span class="text-xs text-muted">Standard consultation or monthly supervision fee.</span>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="editAdminNotes">Internal Admin Notes / Audit Remarks</label>
+                    <textarea id="editAdminNotes" class="form-control" rows="3" placeholder="Internal administrator notes, performance records, or compliance checks..."></textarea>
+                  </div>
+
+                  <div class="flex justify-end gap-3" style="margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary">
+                      Save Practice & Capacity Settings
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab 3: Lifecycle & Verification -->
+              <div id="tabLifecycle" class="tab-panel">
+                <form id="dietitianLifecycleForm">
+                  <div class="form-section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Account Lifecycle & Verification Status
+                  </div>
+
+                  <div class="grid grid-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="editAccountStatus">Account Accessibility (Login Access)</label>
+                      <select id="editAccountStatus" class="form-control">
+                        <option value="active">Active (User Can Log In)</option>
+                        <option value="inactive">Inactive / Deactivated (Access Blocked)</option>
+                      </select>
+                      <span class="text-xs text-muted">Instantly toggle whether the dietitian can access the platform.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="editProfileStatus">Verification & Approval Status</label>
+                      <select id="editProfileStatus" class="form-control">
+                        <option value="approved">Approved (Verified Clinical Dietitian)</option>
+                        <option value="pending">Pending Review</option>
+                        <option value="suspended">Suspended (Temporary Freeze)</option>
+                        <option value="rejected">Rejected (Application Denied)</option>
+                      </select>
+                      <span class="text-xs text-muted">Determines if the dietitian is listed in the user-facing directory.</span>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="editReviewReason">Review Decision Note</label>
+                    <input type="text" id="editReviewReason" class="form-control" placeholder="e.g. Verified license with state registry.">
+                  </div>
+
+                  <div class="flex justify-end gap-3" style="margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary">
+                      Update Status & Verification
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab 4: Security & Password Reset -->
+              <div id="tabSecurity" class="tab-panel">
+                <form id="dietitianSecurityForm">
+                  <div class="form-section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Admin Password Reset
+                  </div>
+
+                  <p class="text-sm text-muted" style="margin-bottom: 16px;">
+                    As an administrator, you can reset this dietitian's credentials at any time. The temporary password will be securely hashed with bcrypt.
+                  </p>
+
+                  <div class="grid grid-2 gap-4">
+                    <div class="form-group">
+                      <label class="form-label" for="newDietitianPassword">New Password *</label>
+                      <div class="flex gap-2">
+                        <input type="text" id="newDietitianPassword" class="form-control" placeholder="Enter new password (min 6 chars)" required>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="window.SHD_DietitianDetails.generateRandomPassword()">
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end gap-3" style="margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary">
+                      Reset Password Now
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Tab 5: Audit Activity -->
+              <div id="tabAudit" class="tab-panel">
+                <div class="form-section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                  Recent Administrative Audit Events
+                </div>
+
+                <div class="table-container">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Event Type</th>
+                        <th>Description</th>
+                        <th>Actor</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dietitianAuditLogsBody">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Assign Client Modal -->
+  <div class="modal-backdrop" id="assignClientModal">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h3 class="text-lg font-bold">Assign Patient to Dietitian</h3>
+        <button class="text-muted" onclick="window.SHD_Admin.closeModal('assignClientModal')" style="font-size: 1.5rem; background: none; border: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <form id="assignClientForm">
+        <div class="form-group">
+          <label class="form-label" for="assignClientSelect">Select Registered User *</label>
+          <select id="assignClientSelect" class="form-control" required>
+            <option value="">Loading candidate users...</option>
+          </select>
+          <span class="text-xs text-muted">Only active users eligible for assignment are listed.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="assignClientGoal">Assigned Goal / Nutritional Focus</label>
+          <input type="text" id="assignClientGoal" class="form-control" placeholder="e.g. Weight Loss & Calorie Management" value="Weight Loss & Healthy Living">
+        </div>
+
+        <div class="flex justify-end gap-3" style="margin-top: 24px;">
+          <button type="button" class="btn btn-outline" onclick="window.SHD_Admin.closeModal('assignClientModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../assets/js/dummy-data.js"></script>
+  <script src="../assets/js/main.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>
