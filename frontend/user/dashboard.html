@@ -86,9 +86,9 @@
         <div class="user-profile-menu">
           <div style="text-align: right;">
             <span class="font-bold text-sm block" id="userNameDisplay">Fatema Rifa</span>
-            <span class="badge badge-primary">Patient Portal</span>
+            
           </div>
-          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="user-avatar">
+          <img src="../assets/images/images.jpeg" alt="Avatar" class="user-avatar" id="dashboardUserAvatar">
         </div>
       </header>
 
@@ -496,6 +496,8 @@
 
         document.getElementById('userNameDisplay').textContent = user.full_name;
         document.getElementById('bannerUserName').textContent = user.full_name.split(' ')[0];
+        const avatar = user.avatar_url || user.avatar || '../assets/images/images.jpeg';
+        document.getElementById('dashboardUserAvatar').src = avatar;
 
         // Calories & Breakdown
         const consumedTotal = calories.consumed || 0;

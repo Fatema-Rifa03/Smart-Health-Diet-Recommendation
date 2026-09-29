@@ -125,7 +125,7 @@ export const register = async (req, res) => {
 
     } catch (error) {
         if (client) {
-            await client.query("ROLLBACK").catch(() => {});
+            await client.query("ROLLBACK").catch(() => { });
         }
 
         console.error("Register error:", error);
@@ -171,16 +171,19 @@ export const login = async (req, res) => {
         const result = await pool.query(
             `
             SELECT
-                id,
-                full_name,
-                email,
-                role,
-                status,
-                password_hash,
-                joined_at,
-                last_login_at
+                accounts.id,
+                accounts.full_name,
+                accounts.email,
+                accounts.role,
+                accounts.status,
+                accounts.password_hash,
+                accounts.joined_at,
+                accounts.last_login_at,
+                COALESCE(up.avatar_url, dp.avatar_url) AS avatar_url
             FROM accounts
-            WHERE email = $1
+            LEFT JOIN user_profiles up ON accounts.id = up.account_id
+            LEFT JOIN dietitian_profiles dp ON accounts.id = dp.account_id
+            WHERE accounts.email = $1
             `,
             [normalizedEmail]
         );
@@ -235,7 +238,8 @@ export const login = async (req, res) => {
                 full_name: account.full_name,
                 email: account.email,
                 role: account.role,
-                status: account.status
+                status: account.status,
+                avatar_url: account.avatar_url || null
             },
             session: {
                 access_token: token
@@ -256,8 +260,7 @@ export const login = async (req, res) => {
 // LOGOUT
 // ===============================
 export const logout = async (req, res) => {
-    // For JWT, logout is usually handled client-side by deleting the token.
-    // We can just return a success message here.
+
     return res.status(200).json({
         success: true,
         message: "Logout successful"

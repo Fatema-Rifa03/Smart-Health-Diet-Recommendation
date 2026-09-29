@@ -2,6 +2,8 @@ import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+export const isUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 // ==========================================
 // Helper: Create an Audit Log Record
 // ==========================================
@@ -148,6 +150,9 @@ export const getUsers = async (req, res) => {
 export const getUserById = async (req, res) => {
     try {
         const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "User account not found" });
+        }
         const result = await pool.query(
             `SELECT
                 a.id,
@@ -155,7 +160,9 @@ export const getUserById = async (req, res) => {
                 a.email,
                 a.role,
                 INITCAP(a.status::text) AS status,
-                a.joined_at,
+                a.status AS "rawStatus",
+                a.joined_at AS "joinedAt",
+                a.last_login_at AS "lastLoginAt",
                 up.age,
                 up.gender,
                 up.height_cm AS height,
@@ -165,7 +172,8 @@ export const getUserById = async (req, res) => {
                 up.primary_goal AS goal,
                 up.daily_calorie_target AS "dailyCalorieLimit",
                 up.water_target_liters AS "waterTarget",
-                up.sleep_target_hours AS "sleepTarget"
+                up.sleep_target_hours AS "sleepTarget",
+                up.updated_at AS "profileUpdatedAt"
              FROM accounts a
              LEFT JOIN user_profiles up ON up.account_id = a.id
              WHERE a.id = $1 AND a.role = 'user'`,
@@ -176,15 +184,79 @@ export const getUserById = async (req, res) => {
             return res.status(404).json({ success: false, message: "User account not found" });
         }
 
-        // Fetch recent weight entries
+        const userRow = result.rows[0];
+
+        // 1. Weight history (latest 10 entries)
         const weights = await pool.query(
-            "SELECT date, weight_kg AS weight FROM weight_entries WHERE user_id = $1 ORDER BY date ASC",
+            "SELECT to_char(date, 'Mon DD, YYYY') as date, weight_kg AS weight FROM weight_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 10",
             [id]
         );
 
+        // 2. Water intake logs (latest 10 entries)
+        const waterLogs = await pool.query(
+            "SELECT to_char(log_date, 'Mon DD, YYYY') as date, amount_liters AS amount, target_liters AS target FROM water_logs WHERE user_id = $1 ORDER BY log_date DESC LIMIT 10",
+            [id]
+        );
+
+        // 3. Sleep tracker logs (latest 10 entries)
+        const sleepLogs = await pool.query(
+            "SELECT to_char(date, 'Mon DD, YYYY') as date, duration_hours AS duration, quality_score AS quality FROM sleep_logs WHERE user_id = $1 ORDER BY date DESC LIMIT 10",
+            [id]
+        );
+
+        // 4. Calorie / Meal daily consumption (latest 10 logged dates)
+        const calorieLogs = await pool.query(
+            "SELECT to_char(logged_for, 'Mon DD, YYYY') as date, SUM(calories)::int AS calories, COUNT(*)::int AS meals FROM meal_logs WHERE user_id = $1 GROUP BY logged_for ORDER BY logged_for DESC LIMIT 10",
+            [id]
+        );
+
+        // 5. Assigned Dietitian (if any)
+        const guidance = await pool.query(
+            `SELECT d.full_name AS "dietitianName", d.email AS "dietitianEmail", dp.specialty AS "dietitianSpecialty", gr.status AS "guidanceStatus", gr.goal AS "guidanceGoal", to_char(gr.created_at, 'Mon DD, YYYY') AS "assignedAt"
+             FROM guidance_requests gr
+             JOIN accounts d ON d.id = gr.dietitian_id
+             LEFT JOIN dietitian_profiles dp ON dp.account_id = d.id
+             WHERE gr.patient_id = $1
+             ORDER BY gr.created_at DESC LIMIT 1`,
+            [id]
+        );
+
+        // 6. Active Meal Plan (if any)
+        const mealPlan = await pool.query(
+            `SELECT mp.title, mp.target_calories AS calories, mp.status, to_char(mp.start_date, 'Mon DD, YYYY') AS "startDate", to_char(mp.end_date, 'Mon DD, YYYY') AS "endDate", d.full_name AS "authorName"
+             FROM meal_plans mp
+             LEFT JOIN accounts d ON d.id = mp.dietitian_id
+             WHERE mp.patient_id = $1 AND mp.status = 'active'
+             ORDER BY mp.created_at DESC LIMIT 1`,
+            [id]
+        );
+
+        // Calculated BMI and health indicators
+        let bmi = null;
+        let bmiCategory = 'N/A';
+        const heightM = userRow.height ? parseFloat(userRow.height) / 100 : null;
+        const currentWt = userRow.weight ? parseFloat(userRow.weight) : null;
+        if (heightM && heightM > 0 && currentWt && currentWt > 0) {
+            bmi = +(currentWt / (heightM * heightM)).toFixed(1);
+            if (bmi < 18.5) bmiCategory = 'Underweight';
+            else if (bmi < 25.0) bmiCategory = 'Normal Weight';
+            else if (bmi < 30.0) bmiCategory = 'Overweight';
+            else bmiCategory = 'Obese';
+        }
+
         return res.status(200).json({
             success: true,
-            user: { ...result.rows[0], weightHistory: weights.rows }
+            user: {
+                ...userRow,
+                bmi,
+                bmiCategory,
+                weightHistory: weights.rows,
+                waterLogs: waterLogs.rows,
+                sleepLogs: sleepLogs.rows,
+                calorieLogs: calorieLogs.rows,
+                assignedDietitian: guidance.rows[0] || null,
+                activeMealPlan: mealPlan.rows[0] || null
+            }
         });
     } catch (error) {
         console.error("getUserById error:", error);
@@ -434,6 +506,9 @@ export const updateUser = async (req, res) => {
 export const toggleUserStatus = async (req, res) => {
     try {
         const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "User account not found" });
+        }
         const current = await pool.query("SELECT id, full_name, status FROM accounts WHERE id = $1 AND role = 'user'", [id]);
         if (current.rows.length === 0) {
             return res.status(404).json({ success: false, message: "User account not found" });
@@ -470,6 +545,9 @@ export const toggleUserStatus = async (req, res) => {
 export const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "User account not found" });
+        }
         const target = await pool.query("SELECT id, full_name, email FROM accounts WHERE id = $1 AND role = 'user'", [id]);
         if (target.rows.length === 0) {
             return res.status(404).json({ success: false, message: "User account not found" });
@@ -553,18 +631,29 @@ export const getDietitians = async (req, res) => {
 export const getDietitianById = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query(
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "Dietitian profile not found" });
+        }
+        const dietitianRes = await pool.query(
             `SELECT
                 a.id,
                 a.full_name AS name,
                 a.email,
                 a.status AS "accountStatus",
+                a.joined_at AS "joinedAt",
+                a.last_login_at AS "lastLoginAt",
                 dp.specialty,
                 dp.years_experience AS "yearsExperience",
                 dp.qualification,
                 dp.avatar_url AS avatar,
                 dp.rating,
                 INITCAP(dp.status::text) AS status,
+                dp.status AS "rawStatus",
+                dp.phone_number AS "phoneNumber",
+                dp.license_number AS "licenseNumber",
+                COALESCE(dp.consultation_fee, 0.00)::float AS "consultationFee",
+                COALESCE(dp.max_clients, 50)::int AS "maxClients",
+                dp.bio,
                 dp.reviewed_by,
                 dp.reviewed_at,
                 dp.review_note,
@@ -576,14 +665,473 @@ export const getDietitianById = async (req, res) => {
             [id]
         );
 
-        if (result.rows.length === 0) {
+        if (dietitianRes.rows.length === 0) {
             return res.status(404).json({ success: false, message: "Dietitian profile not found" });
         }
 
-        return res.status(200).json({ success: true, dietitian: result.rows[0] });
+        const dietitian = dietitianRes.rows[0];
+
+        // Retrieve all patients/users currently controlled or assigned to this dietitian
+        const controlledUsersRes = await pool.query(
+            `SELECT DISTINCT ON (u.id)
+                u.id,
+                u.full_name AS name,
+                u.email,
+                u.status AS "accountStatus",
+                u.joined_at AS "joinedAt",
+                up.age,
+                up.gender,
+                up.current_weight_kg AS weight,
+                up.target_weight_kg AS "targetWeight",
+                up.primary_goal AS goal,
+                up.daily_calorie_target AS "calorieTarget",
+                gr.id AS "guidanceRequestId",
+                gr.status AS "guidanceStatus",
+                gr.goal AS "guidanceGoal",
+                gr.created_at AS "assignedAt",
+                mp.id AS "mealPlanId",
+                mp.title AS "mealPlanTitle",
+                mp.target_calories AS "mealPlanCalories",
+                mp.status AS "mealPlanStatus",
+                (SELECT COUNT(*)::int FROM messages m JOIN conversations conv ON conv.id = m.conversation_id WHERE conv.patient_id = u.id AND conv.dietitian_id = $1) AS "messageCount",
+                (SELECT to_char(MAX(m.sent_at), 'Mon DD, YYYY') FROM messages m JOIN conversations conv ON conv.id = m.conversation_id WHERE conv.patient_id = u.id AND conv.dietitian_id = $1) AS "lastInteraction"
+             FROM accounts u
+             LEFT JOIN user_profiles up ON up.account_id = u.id
+             LEFT JOIN guidance_requests gr ON gr.patient_id = u.id AND gr.dietitian_id = $1
+             LEFT JOIN meal_plans mp ON mp.patient_id = u.id AND mp.dietitian_id = $1 AND mp.status = 'active'
+             WHERE u.role = 'user' AND (
+                 gr.dietitian_id = $1 OR
+                 mp.dietitian_id = $1 OR
+                 EXISTS (SELECT 1 FROM conversations c WHERE c.patient_id = u.id AND c.dietitian_id = $1)
+             )
+             ORDER BY u.id, gr.created_at DESC NULLS LAST`,
+            [id]
+        );
+
+        // Fetch recent audit logs for this dietitian
+        const logsRes = await pool.query(
+            `SELECT id, event_type AS type, description, status, actor_label AS actor,
+                    to_char(occurred_at, 'Mon DD, YYYY HH12:MI AM') AS timestamp
+             FROM audit_logs
+             WHERE metadata->>'dietitianId' = $1
+             ORDER BY occurred_at DESC
+             LIMIT 10`,
+            [id]
+        );
+
+        const controlledUsers = controlledUsersRes.rows;
+        const totalControlled = controlledUsers.length;
+        const maxCapacity = dietitian.maxClients || 50;
+
+        return res.status(200).json({
+            success: true,
+            dietitian,
+            controlledUsers,
+            stats: {
+                totalControlledUsers: totalControlled,
+                activeMealPlans: controlledUsers.filter(u => u.mealPlanStatus === 'active').length,
+                pendingRequests: controlledUsers.filter(u => u.guidanceStatus === 'pending').length,
+                maxClients: maxCapacity,
+                capacityRemaining: Math.max(0, maxCapacity - totalControlled),
+                capacityPercentage: Math.min(100, Math.round((totalControlled / maxCapacity) * 100))
+            },
+            recentActivity: logsRes.rows
+        });
     } catch (error) {
         console.error("getDietitianById error:", error);
-        return res.status(500).json({ success: false, message: "Failed to retrieve dietitian profile" });
+        return res.status(500).json({ success: false, message: "Failed to retrieve dietitian details" });
+    }
+};
+
+export const toggleDietitianStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+        const current = await pool.query(
+            `SELECT a.id, a.full_name, a.status AS "accountStatus", dp.status AS "profileStatus"
+             FROM accounts a
+             LEFT JOIN dietitian_profiles dp ON dp.account_id = a.id
+             WHERE a.id = $1 AND a.role = 'dietitian'`,
+            [id]
+        );
+
+        if (current.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+
+        const isCurrentlyActive = current.rows[0].accountStatus === "active";
+        const newAccountStatus = isCurrentlyActive ? "inactive" : "active";
+
+        await pool.query(
+            "UPDATE accounts SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+            [newAccountStatus, id]
+        );
+
+        if (newAccountStatus === "inactive") {
+            await pool.query(
+                "UPDATE dietitian_profiles SET status = 'suspended', updated_at = CURRENT_TIMESTAMP WHERE account_id = $1 AND status = 'approved'",
+                [id]
+            );
+        } else if (newAccountStatus === "active" && current.rows[0].profileStatus === "suspended") {
+            await pool.query(
+                "UPDATE dietitian_profiles SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE account_id = $1",
+                [id]
+            );
+        }
+
+        const actionText = newAccountStatus === "active" ? "Reactivated" : "Deactivated";
+
+        await logAudit(pool, {
+            eventType: "Admin Action",
+            description: `${actionText} clinical dietitian profile: ${current.rows[0].full_name}`,
+            status: newAccountStatus === "active" ? "completed" : "warning",
+            actorId: req.account.id,
+            actorLabel: req.account.full_name || "System Administrator",
+            metadata: { dietitianId: id, newStatus: newAccountStatus }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Dietitian profile for ${current.rows[0].full_name} has been ${actionText.toLowerCase()} successfully`,
+            accountStatus: newAccountStatus,
+            isActive: newAccountStatus === "active"
+        });
+    } catch (error) {
+        console.error("toggleDietitianStatus error:", error);
+        return res.status(500).json({ success: false, message: "Failed to toggle dietitian profile status" });
+    }
+};
+
+export const updateDietitianDetails = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+        await client.query("BEGIN");
+
+        const checkRes = await client.query(
+            "SELECT a.id, a.full_name, a.email FROM accounts a WHERE a.id = $1 AND a.role = 'dietitian'",
+            [id]
+        );
+        if (checkRes.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+
+        const {
+            name,
+            full_name,
+            email,
+            specialty,
+            experience,
+            years_experience,
+            qualification,
+            avatar,
+            avatar_url,
+            phone_number,
+            license_number,
+            consultation_fee,
+            max_clients,
+            bio,
+            status,
+            accountStatus,
+            review_note
+        } = req.body || {};
+
+        const resolvedName = (name || full_name || checkRes.rows[0].full_name).trim();
+        const resolvedEmail = (email || checkRes.rows[0].email).toLowerCase().trim();
+
+        // 1. Update accounts table
+        const accStatusParam = accountStatus ? accountStatus.toLowerCase() : null;
+        if (accStatusParam && ["active", "inactive"].includes(accStatusParam)) {
+            await client.query(
+                `UPDATE accounts
+                 SET full_name = $1, email = $2, status = $3, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $4`,
+                [resolvedName, resolvedEmail, accStatusParam, id]
+            );
+        } else {
+            await client.query(
+                `UPDATE accounts
+                 SET full_name = $1, email = $2, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $3`,
+                [resolvedName, resolvedEmail, id]
+            );
+        }
+
+        // 2. Parse numbers and values
+        const expNum = years_experience !== undefined ? parseFloat(years_experience) : (experience ? parseFloat(experience) : null);
+        const feeNum = consultation_fee !== undefined ? parseFloat(consultation_fee) : null;
+        const maxClientsNum = max_clients !== undefined ? parseInt(max_clients) : null;
+        const resolvedAvatar = avatar || avatar_url || null;
+
+        // 3. Update dietitian_profiles
+        let statusClause = "";
+        const statusVal = status ? status.toLowerCase() : null;
+        if (statusVal && ["pending", "approved", "rejected", "suspended"].includes(statusVal)) {
+            statusClause = `, status = '${statusVal}'::dietitian_status`;
+        }
+
+        await client.query(
+            `UPDATE dietitian_profiles
+             SET specialty = COALESCE($1, specialty),
+                 years_experience = COALESCE($2, years_experience),
+                 qualification = COALESCE($3, qualification),
+                 avatar_url = COALESCE($4, avatar_url),
+                 phone_number = COALESCE($5, phone_number),
+                 license_number = COALESCE($6, license_number),
+                 consultation_fee = COALESCE($7, consultation_fee),
+                 max_clients = COALESCE($8, max_clients),
+                 bio = COALESCE($9, bio),
+                 review_note = COALESCE($10, review_note),
+                 updated_at = CURRENT_TIMESTAMP
+                 ${statusClause}
+             WHERE account_id = $11`,
+            [
+                specialty || null,
+                expNum,
+                qualification || null,
+                resolvedAvatar,
+                phone_number || null,
+                license_number || null,
+                feeNum,
+                maxClientsNum,
+                bio || null,
+                review_note || null,
+                id
+            ]
+        );
+
+        // Audit log
+        await logAudit(client, {
+            eventType: "Admin Action",
+            description: `Updated clinical dietitian profile & settings for ${resolvedName}`,
+            status: "completed",
+            actorId: req.account.id,
+            actorLabel: req.account.full_name || "System Administrator",
+            metadata: { dietitianId: id }
+        });
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            success: true,
+            message: `Dietitian profile for ${resolvedName} updated successfully`
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("updateDietitianDetails error:", error);
+        return res.status(500).json({ success: false, message: "Failed to update dietitian details" });
+    } finally {
+        client.release();
+    }
+};
+
+export const getAvailableUsersForDietitian = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "Dietitian profile not found" });
+        }
+        const result = await pool.query(
+            `SELECT
+                u.id,
+                u.full_name AS name,
+                u.email,
+                u.status AS "accountStatus",
+                up.primary_goal AS goal,
+                up.age,
+                up.gender,
+                CASE WHEN EXISTS (
+                    SELECT 1 FROM guidance_requests gr WHERE gr.patient_id = u.id AND gr.dietitian_id = $1 AND gr.status IN ('accepted', 'pending')
+                ) THEN true ELSE false END AS "isAssigned"
+             FROM accounts u
+             LEFT JOIN user_profiles up ON up.account_id = u.id
+             WHERE u.role = 'user' AND u.status = 'active'
+             ORDER BY u.full_name ASC`,
+            [id]
+        );
+
+        return res.status(200).json({ success: true, users: result.rows });
+    } catch (error) {
+        console.error("getAvailableUsersForDietitian error:", error);
+        return res.status(500).json({ success: false, message: "Failed to load candidate users" });
+    }
+};
+
+export const assignUserToDietitian = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        const { userId, goal } = req.body || {};
+
+        if (!isUUID(id) || !isUUID(userId)) {
+            return res.status(404).json({ success: false, message: "Dietitian or User not found" });
+        }
+
+        await client.query("BEGIN");
+
+        if (!userId) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ success: false, message: "User ID is required" });
+        }
+
+        const dietitianCheck = await client.query("SELECT id, full_name FROM accounts WHERE id = $1 AND role = 'dietitian'", [id]);
+        if (dietitianCheck.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ success: false, message: "Dietitian not found" });
+        }
+
+        const userCheck = await client.query("SELECT id, full_name FROM accounts WHERE id = $1 AND role = 'user'", [userId]);
+        if (userCheck.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ success: false, message: "User account not found" });
+        }
+
+        const existingReq = await client.query(
+            "SELECT id, status FROM guidance_requests WHERE patient_id = $1 AND dietitian_id = $2",
+            [userId, id]
+        );
+
+        if (existingReq.rows.length > 0) {
+            await client.query(
+                `UPDATE guidance_requests
+                 SET status = 'accepted', goal = COALESCE($3, goal), updated_at = CURRENT_TIMESTAMP
+                 WHERE patient_id = $1 AND dietitian_id = $2`,
+                [userId, id, goal || "Assigned directly by Administrator"]
+            );
+        } else {
+            await client.query(
+                `INSERT INTO guidance_requests (patient_id, dietitian_id, goal, status)
+                 VALUES ($1, $2, $3, 'accepted')`,
+                [userId, id, goal || "Assigned directly by Administrator"]
+            );
+        }
+
+        await client.query(
+            `INSERT INTO conversations (patient_id, dietitian_id)
+             VALUES ($1, $2)
+             ON CONFLICT (patient_id, dietitian_id) DO NOTHING`,
+            [userId, id]
+        );
+
+        await logAudit(client, {
+            eventType: "Admin Action",
+            description: `Assigned client ${userCheck.rows[0].full_name} under dietitian ${dietitianCheck.rows[0].full_name}`,
+            status: "completed",
+            actorId: req.account.id,
+            actorLabel: req.account.full_name || "System Administrator",
+            metadata: { dietitianId: id, userId }
+        });
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            success: true,
+            message: `User ${userCheck.rows[0].full_name} assigned under ${dietitianCheck.rows[0].full_name} successfully!`
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("assignUserToDietitian error:", error);
+        return res.status(500).json({ success: false, message: "Failed to assign user to dietitian" });
+    } finally {
+        client.release();
+    }
+};
+
+export const unassignUserFromDietitian = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id, userId } = req.params;
+        if (!isUUID(id) || !isUUID(userId)) {
+            return res.status(404).json({ success: false, message: "Dietitian or User not found" });
+        }
+        await client.query("BEGIN");
+
+        await client.query(
+            "DELETE FROM guidance_requests WHERE patient_id = $1 AND dietitian_id = $2",
+            [userId, id]
+        );
+
+        await client.query(
+            "UPDATE meal_plans SET status = 'archived' WHERE patient_id = $1 AND dietitian_id = $2 AND status = 'active'",
+            [userId, id]
+        );
+
+        await logAudit(client, {
+            eventType: "Admin Action",
+            description: `Unassigned client from dietitian`,
+            status: "completed",
+            actorId: req.account.id,
+            actorLabel: req.account.full_name || "System Administrator",
+            metadata: { dietitianId: id, userId }
+        });
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({
+            success: true,
+            message: "User unassigned from dietitian successfully"
+        });
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error("unassignUserFromDietitian error:", error);
+        return res.status(500).json({ success: false, message: "Failed to unassign user from dietitian" });
+    } finally {
+        client.release();
+    }
+};
+
+export const resetDietitianPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!isUUID(id)) {
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+        const { password, newPassword } = req.body || {};
+        const passToSet = password || newPassword || "Dietitian@" + Math.floor(1000 + Math.random() * 9000);
+
+        if (passToSet.length < 6) {
+            return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
+        }
+
+        const checkRes = await pool.query(
+            "SELECT full_name FROM accounts WHERE id = $1 AND role = 'dietitian'",
+            [id]
+        );
+        if (checkRes.rows.length === 0) {
+            return res.status(404).json({ success: false, message: "Dietitian account not found" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(passToSet, salt);
+
+        await pool.query(
+            "UPDATE accounts SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+            [passwordHash, id]
+        );
+
+        await logAudit(pool, {
+            eventType: "Security Event",
+            description: `Admin reset credentials for dietitian: ${checkRes.rows[0].full_name}`,
+            status: "warning",
+            actorId: req.account.id,
+            actorLabel: req.account.full_name || "System Administrator",
+            metadata: { dietitianId: id }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Password reset successfully for ${checkRes.rows[0].full_name}`,
+            tempPassword: passToSet
+        });
+    } catch (error) {
+        console.error("resetDietitianPassword error:", error);
+        return res.status(500).json({ success: false, message: "Failed to reset dietitian password" });
     }
 };
 
@@ -692,7 +1240,7 @@ export const createDietitian = async (req, res) => {
 export const approveDietitian = async (req, res) => {
     try {
         const { id } = req.params;
-        const { review_note } = req.body;
+        const { review_note } = req.body || {};
 
         const checkRes = await pool.query(
             `SELECT a.full_name, dp.status FROM dietitian_profiles dp
@@ -741,7 +1289,7 @@ export const approveDietitian = async (req, res) => {
 export const rejectDietitian = async (req, res) => {
     try {
         const { id } = req.params;
-        const { review_note } = req.body;
+        const { review_note } = req.body || {};
 
         const checkRes = await pool.query(
             `SELECT a.full_name FROM dietitian_profiles dp
@@ -787,7 +1335,7 @@ export const rejectDietitian = async (req, res) => {
 export const suspendDietitian = async (req, res) => {
     try {
         const { id } = req.params;
-        const { review_note } = req.body;
+        const { review_note } = req.body || {};
 
         const checkRes = await pool.query(
             `SELECT a.full_name, dp.status FROM dietitian_profiles dp
