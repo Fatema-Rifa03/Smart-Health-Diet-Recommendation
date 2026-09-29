@@ -6,6 +6,55 @@
   <title>Water Intake Tracker - Smart Health System</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <style>
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      max-width: 420px;
+      width: 100%;
+      padding: 24px;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .chart-bar-rect {
+      cursor: pointer;
+      transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+    .chart-bar-rect:hover {
+      opacity: 0.9;
+      filter: brightness(1.15) drop-shadow(0 4px 8px rgba(30, 143, 170, 0.3));
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    @media (max-width: 992px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 576px) {
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -133,16 +182,173 @@
 
         </div>
 
+        <!-- Monthly Water Intake Tracker & Diagram (Under the Daily Water Intake Div) -->
+        <div class="card" style="margin-top: 24px;" id="monthlyWaterCard">
+          <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="flex items-center gap-2">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-md); background: var(--primary-light); color: var(--primary);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                </span>
+                <div>
+                  <h2 class="card-title" id="monthlyDiagramTitle">Monthly Water Intake &amp; Hydration Trends</h2>
+                  <p class="text-xs text-muted" style="margin-top: 2px;">Daily hydration breakdown, target achievement rate, and month-over-month progress.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Month selection & View switcher & Log button -->
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="flex items-center gap-2">
+                <label for="monthPicker" class="text-xs font-bold text-muted">Month:</label>
+                <select id="monthPicker" style="padding: 7px 12px; font-size: 0.825rem; font-weight: 600; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-main); cursor: pointer;" onchange="handleMonthChange(this.value)">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <div class="flex" style="background: var(--bg-page); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <button type="button" id="viewDailyBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--primary); box-shadow: var(--shadow-sm);" onclick="switchDiagramView('daily')">Daily Trend</button>
+                <button type="button" id="viewMonthlyBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border-radius: var(--radius-sm); color: var(--text-muted);" onclick="switchDiagramView('monthly')">Annual Overview</button>
+              </div>
+
+              <button type="button" class="btn btn-primary" style="padding: 7px 14px; font-size: 0.825rem; display: inline-flex; align-items: center; gap: 6px;" onclick="openLogDateModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Log for Date
+              </button>
+            </div>
+          </div>
+
+          <!-- Monthly Metrics Summary Grid -->
+          <div class="grid grid-4 gap-4" style="margin: 20px 0 24px 0;">
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(30,143,170,0.06), rgba(42,179,192,0.02)); border: 1px solid rgba(30,143,170,0.18);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Total Intake</span>
+              <div class="flex items-baseline gap-1" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statTotalLiters" style="color: var(--primary);">0.0</span>
+                <span class="text-xs text-muted font-medium">Liters</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statTotalDays">Logged in 0 days</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(96,165,250,0.02)); border: 1px solid rgba(59,130,246,0.18);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Daily Average</span>
+              <div class="flex items-baseline gap-1" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statAvgLiters" style="color: #2563eb;">0.0</span>
+                <span class="text-xs text-muted font-medium">L/day</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statTargetCompare">Target: 2.50 L</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(52,211,153,0.02)); border: 1px solid rgba(16,185,129,0.18);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Target Consistency</span>
+              <div class="flex items-baseline gap-2" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statTargetDays" style="color: var(--success);">0</span>
+                <span class="badge badge-success text-xs" id="statConsistencyRate" style="font-size: 0.75rem;">0%</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statTargetDaysSub">Days reached target</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(241,143,1,0.06), rgba(245,158,11,0.02)); border: 1px solid rgba(241,143,1,0.18);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Best Hydration Day</span>
+              <div class="flex items-baseline gap-1" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statBestDayAmount" style="color: var(--accent);">0.0</span>
+                <span class="text-xs text-muted font-medium">Liters</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statBestDayLabel">No record yet</span>
+            </div>
+          </div>
+
+          <!-- Diagram Visual Canvas Area -->
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative;">
+            
+            <!-- Legend / Chart Sub-bar -->
+            <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--border);">
+              <div class="flex items-center gap-4 text-xs font-medium flex-wrap">
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(180deg, #10b981 0%, #059669 100%);"></span>
+                  <span style="color: var(--text-main); font-weight: 600;">Goal Met (≥ Target)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);"></span>
+                  <span style="color: var(--text-main); font-weight: 600;">Water Logged</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: #e2e8f0;"></span>
+                  <span class="text-muted">No Entry</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 18px; height: 2px; border-top: 2px dashed #f59e0b;"></span>
+                  <span style="color: #b45309; font-weight: 600;" id="legendTargetLabel">Daily Goal Target</span>
+                </span>
+              </div>
+
+              <div class="text-xs text-muted" id="chartDateRangeLabel">
+                Showing daily intake for all days in month · Click any bar to log
+              </div>
+            </div>
+
+            <!-- The Interactive Graph / Diagram Container -->
+            <div id="diagramContainer" style="min-height: 290px; position: relative; overflow-x: auto;">
+              <!-- Dynamically drawn SVG Diagram with custom tooltips -->
+            </div>
+
+            <!-- Floating Tooltip -->
+            <div id="chartTooltip" style="position: absolute; display: none; pointer-events: none; z-index: 100; background: rgba(15, 23, 42, 0.94); color: #fff; border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.75rem; box-shadow: var(--shadow-lg); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); transform: translate(-50%, -120%); transition: opacity 0.15s ease; white-space: nowrap;">
+            </div>
+          </div>
+        </div>
+
       </main>
+    </div>
+  </div>
+
+  <!-- Modal to log water for a specific date -->
+  <div id="logDateModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="flex justify-between items-center" style="margin-bottom: 16px;">
+        <h3 class="font-bold text-lg" style="color: var(--text-main);">Log Water for Specific Date</h3>
+        <button type="button" class="btn text-muted" onclick="closeLogDateModal()" style="font-size: 1.5rem; line-height: 1;">&times;</button>
+      </div>
+      <form id="logDateForm" onsubmit="handleDateLogSubmit(event)">
+        <div style="margin-bottom: 16px;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Log Date:</label>
+          <input type="date" id="customLogDate" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-page);">
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Water Amount (Liters):</label>
+          <input type="number" id="customLogAmount" step="0.05" min="0.05" max="10.0" value="0.5" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-page);">
+          <div class="flex gap-2 flex-wrap" style="margin-top: 10px;">
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 6px 10px;" onclick="document.getElementById('customLogAmount').value = 0.25">+ 250 ml</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 6px 10px;" onclick="document.getElementById('customLogAmount').value = 0.50">+ 500 ml</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 6px 10px;" onclick="document.getElementById('customLogAmount').value = 1.00">+ 1.0 L</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 6px 10px;" onclick="document.getElementById('customLogAmount').value = 2.50">+ 2.5 L</button>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3" style="border-top: 1px solid var(--border); padding-top: 16px;">
+          <button type="button" class="btn btn-outline" onclick="closeLogDateModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Water Entry</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script src="../assets/js/main.js"></script>
   <script>
     const API_URL = 'http://localhost:5000/api';
-    
+    let currentSelectedMonth = '';
+    let currentDiagramView = 'daily';
+    let currentMonthData = null;
+
     function getToken() {
       return localStorage.getItem('shd_token');
+    }
+
+    // Format local date YYYY-MM-DD
+    function getTodayDateString() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
     async function renderWaterTracker() {
@@ -164,7 +370,7 @@
           
           const targetBadge = document.querySelector('.card-header .badge');
           if (targetBadge) {
-              targetBadge.textContent = `Target: ${targetAmount} Liters`;
+              targetBadge.textContent = `Target: ${targetAmount.toFixed(1)} Liters`;
           }
         }
       } catch (err) {
@@ -172,23 +378,405 @@
       }
     }
 
-    async function logWater(amount) {
+    async function loadMonthlyWater(monthKey) {
       const token = getToken();
       if (!token) return;
 
       try {
+        let url = `${API_URL}/tracking/water/monthly`;
+        if (monthKey) url += `?month=${encodeURIComponent(monthKey)}`;
+
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+
+        if (data.success) {
+          currentMonthData = data;
+          currentSelectedMonth = data.month;
+
+          // Update header label
+          const diagramTitle = document.getElementById('monthlyDiagramTitle');
+          if (diagramTitle) {
+            diagramTitle.textContent = `${data.month_label} Hydration Trends`;
+          }
+
+          // Populate month dropdown if not already populated
+          const picker = document.getElementById('monthPicker');
+          if (picker) {
+            picker.innerHTML = '';
+            (data.available_months || [data.month]).forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m;
+              const [y, mon] = m.split('-');
+              const d = new Date(parseInt(y), parseInt(mon) - 1, 1);
+              opt.textContent = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+              if (m === data.month) opt.selected = true;
+              picker.appendChild(opt);
+            });
+          }
+
+          // Update summary pills
+          const s = data.summary || {};
+          document.getElementById('statTotalLiters').textContent = Number(s.total_liters || 0).toFixed(1);
+          document.getElementById('statTotalDays').textContent = `Logged in ${s.days_logged || 0} of ${data.days_in_month} days`;
+          document.getElementById('statAvgLiters').textContent = Number(s.avg_daily_liters || 0).toFixed(2);
+          document.getElementById('statTargetCompare').textContent = `Target: ${Number(s.target_liters || 2.5).toFixed(2)} L/day`;
+          document.getElementById('statTargetDays').textContent = `${s.days_target_met || 0} / ${s.days_logged || 0}`;
+          document.getElementById('statConsistencyRate').textContent = `${s.completion_rate || 0}%`;
+          
+          if (s.best_day && s.best_day.amount_liters > 0) {
+            document.getElementById('statBestDayAmount').textContent = Number(s.best_day.amount_liters).toFixed(1);
+            const bestDate = new Date(s.best_day.date);
+            document.getElementById('statBestDayLabel').textContent = bestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          } else {
+            document.getElementById('statBestDayAmount').textContent = '0.0';
+            document.getElementById('statBestDayLabel').textContent = 'No records yet';
+          }
+
+          const legendLabel = document.getElementById('legendTargetLabel');
+          if (legendLabel) {
+            legendLabel.textContent = `Daily Goal (${Number(s.target_liters || 2.5).toFixed(1)} L)`;
+          }
+
+          renderDiagram();
+        }
+      } catch (err) {
+        console.error("Error loading monthly water intake:", err);
+      }
+    }
+
+    function renderDiagram() {
+      if (!currentMonthData) return;
+      if (currentDiagramView === 'daily') {
+        renderDailyDiagram(currentMonthData.daily_breakdown, currentMonthData.summary);
+      } else {
+        renderMonthlyOverview(currentMonthData.history);
+      }
+    }
+
+    function switchDiagramView(view) {
+      currentDiagramView = view;
+      const dailyBtn = document.getElementById('viewDailyBtn');
+      const monthlyBtn = document.getElementById('viewMonthlyBtn');
+
+      if (view === 'daily') {
+        dailyBtn.style.background = 'var(--bg-surface)';
+        dailyBtn.style.color = 'var(--primary)';
+        dailyBtn.style.fontWeight = '700';
+        dailyBtn.style.boxShadow = 'var(--shadow-sm)';
+
+        monthlyBtn.style.background = 'transparent';
+        monthlyBtn.style.color = 'var(--text-muted)';
+        monthlyBtn.style.fontWeight = '600';
+        monthlyBtn.style.boxShadow = 'none';
+
+        document.getElementById('chartDateRangeLabel').textContent = 'Showing daily intake for all days in month · Click any bar to log';
+      } else {
+        monthlyBtn.style.background = 'var(--bg-surface)';
+        monthlyBtn.style.color = 'var(--primary)';
+        monthlyBtn.style.fontWeight = '700';
+        monthlyBtn.style.boxShadow = 'var(--shadow-sm)';
+
+        dailyBtn.style.background = 'transparent';
+        dailyBtn.style.color = 'var(--text-muted)';
+        dailyBtn.style.fontWeight = '600';
+        dailyBtn.style.boxShadow = 'none';
+
+        document.getElementById('chartDateRangeLabel').textContent = 'Month-over-month total consumption overview';
+      }
+      renderDiagram();
+    }
+
+    function handleMonthChange(monthKey) {
+      currentSelectedMonth = monthKey;
+      loadMonthlyWater(monthKey);
+    }
+
+    function renderDailyDiagram(days, summary) {
+      const container = document.getElementById('diagramContainer');
+      if (!container || !days || days.length === 0) return;
+
+      const targetLiters = summary?.target_liters || 2.5;
+      const maxLiters = Math.max(
+        targetLiters + 0.5,
+        ...days.map(d => d.amount_liters || 0),
+        3.5
+      );
+
+      const svgWidth = 1000;
+      const svgHeight = 290;
+      const padLeft = 45;
+      const padRight = 30;
+      const padTop = 30;
+      const padBottom = 40;
+      const chartWidth = svgWidth - padLeft - padRight;
+      const chartHeight = svgHeight - padTop - padBottom;
+
+      const todayStr = getTodayDateString();
+
+      // Horizontal grid lines
+      const gridLevels = [0, 1.0, 2.0, 3.0, 4.0].filter(v => v <= maxLiters);
+      if (!gridLevels.includes(0)) gridLevels.unshift(0);
+
+      let gridHtml = '';
+      gridLevels.forEach(val => {
+        const y = padTop + chartHeight - (val / maxLiters) * chartHeight;
+        gridHtml += `
+          <line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+          <text x="${padLeft - 8}" y="${y + 4}" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="end">${val.toFixed(1)}L</text>
+        `;
+      });
+
+      // Target dashed line
+      const targetY = padTop + chartHeight - (targetLiters / maxLiters) * chartHeight;
+      const targetLineHtml = `
+        <line x1="${padLeft}" y1="${targetY}" x2="${svgWidth - padRight}" y2="${targetY}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" />
+        <rect x="${svgWidth - padRight - 85}" y="${targetY - 11}" width="85" height="20" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+        <text x="${svgWidth - padRight - 42}" y="${targetY + 3}" fill="#b45309" font-size="10" font-weight="700" text-anchor="middle">Goal: ${targetLiters.toFixed(1)}L</text>
+      `;
+
+      // Render Days bars
+      const numDays = days.length;
+      const slotWidth = chartWidth / numDays;
+      const barWidth = Math.max(12, Math.min(22, slotWidth * 0.75));
+
+      let barsHtml = '';
+
+      days.forEach((item, idx) => {
+        const slotX = padLeft + idx * slotWidth;
+        const barX = slotX + (slotWidth - barWidth) / 2;
+        const amount = item.amount_liters || 0;
+        const isLogged = item.is_logged;
+        const metTarget = item.target_met;
+        const isToday = item.date === todayStr;
+
+        // Bar height
+        const barH = isLogged ? Math.max(6, (amount / maxLiters) * chartHeight) : 4;
+        const barY = padTop + chartHeight - barH;
+
+        const fill = metTarget 
+          ? 'url(#waterGradientSuccess)' 
+          : (isLogged ? 'url(#waterGradientPrimary)' : '#e2e8f0');
+
+        // Background click hitbox for easier clicking
+        barsHtml += `
+          <g class="chart-bar-group" data-date="${item.date}" data-day="${item.day}" data-name="${item.day_name}" data-amount="${amount}" data-target="${item.target_liters}" data-logged="${isLogged}" data-met="${metTarget}" onclick="openLogDateModal('${item.date}')" style="cursor: pointer;">
+            <!-- Invisible click area -->
+            <rect x="${slotX}" y="${padTop}" width="${slotWidth}" height="${chartHeight + 35}" fill="transparent" />
+            
+            <!-- Pillar placeholder line if empty -->
+            ${!isLogged ? `<rect x="${barX + barWidth / 2 - 1}" y="${padTop + 10}" width="2" height="${chartHeight - 10}" fill="#f1f5f9" rx="1" />` : ''}
+
+            <!-- Actual Bar -->
+            <rect class="chart-bar-rect" x="${barX}" y="${barY}" width="${barWidth}" height="${barH}" rx="4" fill="${fill}" />
+
+            <!-- Today marker -->
+            ${isToday ? `<circle cx="${barX + barWidth / 2}" cy="${padTop + chartHeight + 28}" r="3" fill="#f59e0b" />` : ''}
+
+            <!-- Day number text on X-axis -->
+            <text x="${barX + barWidth / 2}" y="${padTop + chartHeight + 18}" fill="${isToday ? '#2563eb' : '#64748b'}" font-size="11" font-weight="${isToday ? '800' : '600'}" text-anchor="middle">${item.day}</text>
+          </g>
+        `;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width: 100%; height: 290px; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="waterGradientPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#2563eb" />
+            </linearGradient>
+            <linearGradient id="waterGradientSuccess" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#34d399" />
+              <stop offset="100%" stop-color="#059669" />
+            </linearGradient>
+          </defs>
+          ${gridHtml}
+          ${targetLineHtml}
+          ${barsHtml}
+        </svg>
+      `;
+
+      setupChartTooltips();
+    }
+
+    function renderMonthlyOverview(history) {
+      const container = document.getElementById('diagramContainer');
+      if (!container) return;
+
+      if (!history || history.length === 0) {
+        container.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 260px; color: var(--text-muted);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; color: var(--text-light);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <p class="font-bold text-sm">No historical months recorded yet</p>
+            <span class="text-xs">Continue logging water daily to build your long-term hydration trend!</span>
+          </div>
+        `;
+        return;
+      }
+
+      // Reverse so chronological from left to right
+      const months = [...history].reverse();
+      const maxTotal = Math.max(30, ...months.map(m => m.total_liters || 0));
+
+      const svgWidth = 1000;
+      const svgHeight = 290;
+      const padLeft = 55;
+      const padRight = 30;
+      const padTop = 30;
+      const padBottom = 40;
+      const chartWidth = svgWidth - padLeft - padRight;
+      const chartHeight = svgHeight - padTop - padBottom;
+
+      const slotWidth = chartWidth / months.length;
+      const barWidth = Math.min(60, slotWidth * 0.55);
+
+      let gridHtml = '';
+      [0, Math.round(maxTotal * 0.33), Math.round(maxTotal * 0.66), maxTotal].forEach(val => {
+        const y = padTop + chartHeight - (val / maxTotal) * chartHeight;
+        gridHtml += `
+          <line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+          <text x="${padLeft - 8}" y="${y + 4}" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="end">${val}L</text>
+        `;
+      });
+
+      let barsHtml = '';
+      months.forEach((item, idx) => {
+        const slotX = padLeft + idx * slotWidth;
+        const barX = slotX + (slotWidth - barWidth) / 2;
+        const total = item.total_liters || 0;
+        const barH = Math.max(10, (total / maxTotal) * chartHeight);
+        const barY = padTop + chartHeight - barH;
+
+        barsHtml += `
+          <g class="chart-monthly-group" data-month="${item.month_label || item.month_key}" data-total="${total}" data-avg="${item.avg_daily_liters}" data-days="${item.days_logged}" data-met="${item.days_target_met}">
+            <rect class="chart-bar-rect" x="${barX}" y="${barY}" width="${barWidth}" height="${barH}" rx="6" fill="url(#waterGradientMonthly)" />
+            <text x="${barX + barWidth / 2}" y="${barY - 8}" fill="var(--primary-dark)" font-size="11" font-weight="700" text-anchor="middle">${total}L</text>
+            <text x="${barX + barWidth / 2}" y="${padTop + chartHeight + 20}" fill="#64748b" font-size="11" font-weight="700" text-anchor="middle">${item.month_label ? item.month_label.slice(0, 3) + ' ' + item.month_key.slice(2, 4) : item.month_key}</text>
+          </g>
+        `;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width: 100%; height: 290px; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="waterGradientMonthly" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#2ab3c0" />
+              <stop offset="100%" stop-color="#1e8faa" />
+            </linearGradient>
+          </defs>
+          ${gridHtml}
+          ${barsHtml}
+        </svg>
+      `;
+
+      setupMonthlyTooltips();
+    }
+
+    function setupChartTooltips() {
+      const tooltip = document.getElementById('chartTooltip');
+      const container = document.getElementById('diagramContainer');
+      if (!tooltip || !container) return;
+
+      const groups = container.querySelectorAll('.chart-bar-group');
+      groups.forEach(g => {
+        g.addEventListener('mouseenter', (e) => {
+          const date = g.getAttribute('data-date');
+          const dayName = g.getAttribute('data-name');
+          const amount = parseFloat(g.getAttribute('data-amount')) || 0;
+          const target = parseFloat(g.getAttribute('data-target')) || 2.5;
+          const logged = g.getAttribute('data-logged') === 'true';
+          const met = g.getAttribute('data-met') === 'true';
+
+          let statusBadge = '';
+          if (met) {
+            statusBadge = `<span style="color: #34d399; font-weight: bold;">✔ Target Reached (+${(amount - target).toFixed(2)} L)</span>`;
+          } else if (logged) {
+            statusBadge = `<span style="color: #60a5fa;">💧 Incomplete (${(target - amount).toFixed(2)} L to goal)</span>`;
+          } else {
+            statusBadge = `<span style="color: #94a3b8;">No water logged</span>`;
+          }
+
+          tooltip.innerHTML = `
+            <div style="font-weight: 700; margin-bottom: 2px;">${dayName}, ${date}</div>
+            <div style="margin-bottom: 2px;">Intake: <strong style="color: #38bdf8;">${amount.toFixed(2)} L</strong> / ${target.toFixed(2)} L</div>
+            <div>${statusBadge}</div>
+            <div style="margin-top: 4px; font-size: 0.675rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2px;">Click bar to add/adjust water</div>
+          `;
+          tooltip.style.display = 'block';
+        });
+
+        g.addEventListener('mousemove', (e) => {
+          const rect = container.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          tooltip.style.left = x + 'px';
+          tooltip.style.top = y + 'px';
+        });
+
+        g.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      });
+    }
+
+    function setupMonthlyTooltips() {
+      const tooltip = document.getElementById('chartTooltip');
+      const container = document.getElementById('diagramContainer');
+      if (!tooltip || !container) return;
+
+      const groups = container.querySelectorAll('.chart-monthly-group');
+      groups.forEach(g => {
+        g.addEventListener('mouseenter', (e) => {
+          const month = g.getAttribute('data-month');
+          const total = g.getAttribute('data-total');
+          const avg = g.getAttribute('data-avg');
+          const days = g.getAttribute('data-days');
+          const met = g.getAttribute('data-met');
+
+          tooltip.innerHTML = `
+            <div style="font-weight: 700; margin-bottom: 2px;">${month}</div>
+            <div>Total Intake: <strong style="color: #38bdf8;">${total} Liters</strong></div>
+            <div>Daily Average: <strong>${avg} L/day</strong></div>
+            <div style="font-size: 0.7rem; color: #94a3b8;">${days} days recorded · ${met} days goal met</div>
+          `;
+          tooltip.style.display = 'block';
+        });
+
+        g.addEventListener('mousemove', (e) => {
+          const rect = container.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          tooltip.style.left = x + 'px';
+          tooltip.style.top = y + 'px';
+        });
+
+        g.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      });
+    }
+
+    async function logWater(amount, date = null) {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const payload = { amount_liters: amount };
+        if (date) payload.log_date = date;
+
         const res = await fetch(`${API_URL}/tracking/water`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token 
           },
-          body: JSON.stringify({ amount_liters: amount })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         
         if (data.success) {
-          renderWaterTracker();
+          await renderWaterTracker();
+          await loadMonthlyWater(currentSelectedMonth);
         } else {
           alert('Failed to log water: ' + data.message);
         }
@@ -197,16 +785,52 @@
       }
     }
 
-    async function resetWater() {
-      if (!confirm('Reset today\'s water intake?')) return;
+    async function resetWater(date = null) {
+      const dateLabel = date ? `for ${date}` : `today's`;
+      if (!confirm(`Reset ${dateLabel} water intake?`)) return;
       try {
-        const res = await fetch(`${API_URL}/tracking/water`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
+        let url = `${API_URL}/tracking/water`;
+        if (date) url += `?date=${encodeURIComponent(date)}`;
+        const res = await fetch(url, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() } });
         if (!res.ok) throw new Error('Unable to reset water intake');
-        renderWaterTracker();
+        await renderWaterTracker();
+        await loadMonthlyWater(currentSelectedMonth);
       } catch (err) { alert(err.message); }
     }
 
-    document.addEventListener('DOMContentLoaded', renderWaterTracker);
+    // Modal functions for logging specific date
+    function openLogDateModal(prefillDate) {
+      const modal = document.getElementById('logDateModal');
+      const dateInput = document.getElementById('customLogDate');
+      if (dateInput) {
+        dateInput.value = prefillDate || getTodayDateString();
+      }
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeLogDateModal() {
+      const modal = document.getElementById('logDateModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function handleDateLogSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('customLogDate').value;
+      const amount = parseFloat(document.getElementById('customLogAmount').value) || 0;
+
+      if (!date || amount <= 0) {
+        alert('Please enter a valid date and water amount');
+        return;
+      }
+
+      await logWater(amount, date);
+      closeLogDateModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderWaterTracker();
+      loadMonthlyWater();
+    });
   </script>
 </body>
 </html>

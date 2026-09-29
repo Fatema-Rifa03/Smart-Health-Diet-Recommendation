@@ -1,8 +1,8 @@
 import express from "express";
 import { 
     logMeal, getMealsByDate, deleteMeal, clearTodayMeals,
-    logWater, getWater, resetWater,
-    logSleep, getSleepLogs,
+    logWater, getWater, resetWater, getMonthlyWater,
+    logSleep, getSleepLogs, getMonthlySleep,
     logWeight, getWeightLogs,
     getDashboardSummary
 } from "../controllers/tracking.controller.js";
@@ -24,11 +24,13 @@ router.delete("/meals/:id", deleteMeal);
 // Water
 router.post("/water", logWater);
 router.get("/water", getWater);
+router.get("/water/monthly", getMonthlyWater);
 router.delete("/water", resetWater);
 
 // Sleep
 router.post("/sleep", logSleep);
 router.get("/sleep", getSleepLogs);
+router.get("/sleep/monthly", getMonthlySleep);
 
 // Weight
 router.post("/weight", logWeight);

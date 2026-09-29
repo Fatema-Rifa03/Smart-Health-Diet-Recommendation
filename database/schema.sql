@@ -271,3 +271,37 @@ SELECT
     MAX(weight_kg) FILTER (WHERE latest_row = 1) AS latest_weight_kg
 FROM ranked_weights
 GROUP BY user_id;
+
+-- Monthly water tracking aggregation view
+CREATE OR REPLACE VIEW user_monthly_water_summary AS
+SELECT
+    user_id,
+    DATE_TRUNC('month', log_date)::DATE AS month_date,
+    TO_CHAR(log_date, 'YYYY-MM') AS month_key,
+    TO_CHAR(DATE_TRUNC('month', log_date), 'FMMonth YYYY') AS month_label,
+    ROUND(SUM(amount_liters), 2)::FLOAT AS total_liters,
+    ROUND(AVG(amount_liters), 2)::FLOAT AS avg_daily_liters,
+    ROUND(AVG(target_liters), 2)::FLOAT AS avg_target_liters,
+    COUNT(DISTINCT log_date)::INTEGER AS days_logged,
+    COUNT(CASE WHEN amount_liters >= target_liters THEN 1 END)::INTEGER AS days_target_met,
+    ROUND(MAX(amount_liters), 2)::FLOAT AS max_daily_liters
+FROM water_logs
+GROUP BY user_id, DATE_TRUNC('month', log_date), TO_CHAR(log_date, 'YYYY-MM');
+
+CREATE INDEX IF NOT EXISTS water_logs_user_date_idx ON water_logs (user_id, log_date DESC);
+
+-- Monthly sleep tracking aggregation view
+CREATE OR REPLACE VIEW user_monthly_sleep_summary AS
+SELECT
+    user_id,
+    DATE_TRUNC('month', date)::DATE AS month_date,
+    TO_CHAR(date, 'YYYY-MM') AS month_key,
+    TO_CHAR(DATE_TRUNC('month', date), 'FMMonth YYYY') AS month_label,
+    ROUND(SUM(duration_hours), 1)::FLOAT AS total_sleep_hours,
+    ROUND(AVG(duration_hours), 2)::FLOAT AS avg_duration_hours,
+    ROUND(AVG(quality_score), 1)::FLOAT AS avg_quality_score,
+    COUNT(DISTINCT date)::INTEGER AS days_logged,
+    ROUND(MAX(duration_hours), 1)::FLOAT AS max_duration_hours
+FROM sleep_logs
+GROUP BY user_id, DATE_TRUNC('month', date), TO_CHAR(date, 'YYYY-MM');
+

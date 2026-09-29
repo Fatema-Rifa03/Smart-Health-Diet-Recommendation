@@ -171,19 +171,19 @@ export const login = async (req, res) => {
         const result = await pool.query(
             `
             SELECT
-                id,
-                full_name,
-                email,
-                role,
-                status,
-                password_hash,
-                joined_at,
-                last_login_at,
+                accounts.id,
+                accounts.full_name,
+                accounts.email,
+                accounts.role,
+                accounts.status,
+                accounts.password_hash,
+                accounts.joined_at,
+                accounts.last_login_at,
                 COALESCE(up.avatar_url, dp.avatar_url) AS avatar_url
             FROM accounts
             LEFT JOIN user_profiles up ON accounts.id = up.account_id
             LEFT JOIN dietitian_profiles dp ON accounts.id = dp.account_id
-            WHERE email = $1
+            WHERE accounts.email = $1
             `,
             [normalizedEmail]
         );

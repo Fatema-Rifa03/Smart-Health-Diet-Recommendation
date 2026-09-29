@@ -6,6 +6,63 @@
   <title>Sleep Duration & Quality Tracker - Smart Health System</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link rel="stylesheet" href="../assets/css/dashboard.css">
+  <style>
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .chart-bar-rect {
+      cursor: pointer;
+      transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+    .chart-bar-rect:hover {
+      opacity: 0.92;
+      filter: brightness(1.22) drop-shadow(0 4px 10px rgba(99, 102, 241, 0.38));
+    }
+    .chart-dot {
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .chart-dot:hover {
+      transform: scale(1.35);
+      filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+    @media (max-width: 992px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 576px) {
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -147,13 +204,238 @@
           </form>
         </div>
 
+        <!-- Monthly Sleep Duration & Recovery Tracker & Diagram (Under Log Sleep Session) -->
+        <div class="card" style="margin-top: 24px;" id="monthlySleepCard">
+          <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="flex items-center gap-2">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </span>
+                <div>
+                  <h2 class="card-title" id="sleepDiagramTitle">Monthly Sleep Duration &amp; Recovery Patterns</h2>
+                  <p class="text-xs text-muted" style="margin-top: 2px;">Daily sleep duration breakdown, sleep target consistency, quality scores, and recovery cycles.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Month selection, View Switcher & Metric Switcher -->
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="flex items-center gap-2">
+                <label for="sleepMonthPicker" class="text-xs font-bold text-muted">Month:</label>
+                <select id="sleepMonthPicker" style="padding: 7px 12px; font-size: 0.825rem; font-weight: 600; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-main); cursor: pointer;" onchange="handleSleepMonthChange(this.value)">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <!-- Metric switcher: Duration vs Quality -->
+              <div class="flex" style="background: var(--bg-page); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <button type="button" id="metricDurationBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-sm); background: var(--bg-surface); color: #4f46e5; box-shadow: var(--shadow-sm);" onclick="switchSleepMetric('duration')">Duration (hrs)</button>
+                <button type="button" id="metricQualityBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border-radius: var(--radius-sm); color: var(--text-muted);" onclick="switchSleepMetric('quality')">Quality Score</button>
+              </div>
+
+              <!-- View Switcher: Daily vs Annual -->
+              <div class="flex" style="background: var(--bg-page); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <button type="button" id="viewDailySleepBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-sm); background: var(--bg-surface); color: #4f46e5; box-shadow: var(--shadow-sm);" onclick="switchSleepView('daily')">Daily Trend</button>
+                <button type="button" id="viewAnnualSleepBtn" class="btn" style="padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border-radius: var(--radius-sm); color: var(--text-muted);" onclick="switchSleepView('annual')">Annual Overview</button>
+              </div>
+
+              <button type="button" class="btn btn-primary" style="padding: 7px 14px; font-size: 0.825rem; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #6366f1, #4f46e5); border: none;" onclick="openLogSleepModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Log for Date
+              </button>
+            </div>
+          </div>
+
+          <!-- Monthly Metrics Summary Cards -->
+          <div class="grid grid-4 gap-4" style="margin: 20px 0 24px 0;">
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(79, 70, 229, 0.02)); border: 1px solid rgba(99, 102, 241, 0.2);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Average Duration</span>
+              <div class="flex items-baseline gap-1" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statSleepAvgHours" style="color: #4f46e5;">0.0</span>
+                <span class="text-xs text-muted font-medium">hrs/night</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statSleepTargetCompare">Target: 8.0 hrs</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.02)); border: 1px solid rgba(16, 185, 129, 0.2);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Avg Quality Score</span>
+              <div class="flex items-baseline gap-2" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statSleepAvgQuality" style="color: #059669;">0</span>
+                <span class="badge badge-success text-xs" id="statSleepQualityTier" style="font-size: 0.75rem;">Optimal</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statSleepQualitySub">Out of 100 points</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(2, 132, 199, 0.02)); border: 1px solid rgba(14, 165, 233, 0.2);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Target Consistency</span>
+              <div class="flex items-baseline gap-2" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statSleepTargetDays" style="color: #0284c7;">0</span>
+                <span class="badge badge-primary text-xs" id="statSleepConsistencyRate" style="font-size: 0.75rem;">0%</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statSleepTargetDaysSub">Nights reached target</span>
+            </div>
+
+            <div class="stat-card" style="padding: 16px; border-radius: var(--radius-md); background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.02)); border: 1px solid rgba(245, 158, 11, 0.2);">
+              <span class="text-xs font-bold uppercase text-muted" style="letter-spacing: 0.05em;">Best Rest Night</span>
+              <div class="flex items-baseline gap-1" style="margin-top: 6px;">
+                <span class="font-bold text-2xl" id="statSleepBestDuration" style="color: #d97706;">0.0</span>
+                <span class="text-xs text-muted font-medium">hrs</span>
+              </div>
+              <span class="text-xs text-muted" style="margin-top: 4px;" id="statSleepBestLabel">No record yet</span>
+            </div>
+          </div>
+
+          <!-- Diagram Visual Canvas Area -->
+          <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: relative;">
+            
+            <!-- Legend / Chart Sub-bar -->
+            <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--border);">
+              <div class="flex items-center gap-4 text-xs font-medium flex-wrap" id="sleepLegendGroup">
+                <span class="flex items-center gap-1.5" id="legendMetItem">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(180deg, #10b981 0%, #059669 100%);"></span>
+                  <span style="color: var(--text-main); font-weight: 600;">Target Met (≥ Goal)</span>
+                </span>
+                <span class="flex items-center gap-1.5" id="legendNormalItem">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);"></span>
+                  <span style="color: var(--text-main); font-weight: 600;">Regular Sleep Logged</span>
+                </span>
+                <span class="flex items-center gap-1.5" id="legendShortItem">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);"></span>
+                  <span style="color: #b45309; font-weight: 600;">Short Sleep (&lt; 6 hrs)</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 12px; height: 12px; border-radius: 3px; background: #e2e8f0;"></span>
+                  <span class="text-muted">No Entry</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span style="width: 18px; height: 2px; border-top: 2px dashed #f59e0b;"></span>
+                  <span style="color: #b45309; font-weight: 600;" id="sleepLegendTargetLabel">Sleep Target</span>
+                </span>
+                <span class="flex items-center gap-1.5" id="sleepLegendDot">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #06b6d4; display: inline-block;"></span>
+                  <span style="color: var(--text-muted); font-weight: 600;">Quality Dot (Score)</span>
+                </span>
+              </div>
+
+              <div class="text-xs text-muted" id="sleepChartDateRangeLabel">
+                Showing daily sleep breakdown · Hover for recovery details · Click any bar to edit
+              </div>
+            </div>
+
+            <!-- The Interactive Graph / Diagram Container -->
+            <div id="sleepDiagramContainer" style="min-height: 290px; position: relative; overflow-x: auto;">
+              <!-- Dynamically drawn SVG Diagram with custom tooltips -->
+            </div>
+
+            <!-- Floating Tooltip -->
+            <div id="sleepChartTooltip" style="position: absolute; display: none; pointer-events: none; z-index: 100; background: rgba(15, 23, 42, 0.95); color: #fff; border-radius: var(--radius-md); padding: 10px 14px; font-size: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.12); transform: translate(-50%, -120%); transition: opacity 0.15s ease; white-space: nowrap;">
+            </div>
+          </div>
+
+          <!-- Sleep Quality & Recovery Highlights -->
+          <div class="grid grid-3 gap-4" style="margin-top: 20px;">
+            <div style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+              <div class="flex items-center gap-2" style="margin-bottom: 6px;">
+                <span style="color: #6366f1;">🌙</span>
+                <span class="text-xs font-bold" style="color: var(--text-main);">Circadian Regularity</span>
+              </div>
+              <p class="text-xs text-muted" id="sleepInsightSchedule" style="line-height: 1.5;">Maintaining consistent bedtime and wake-up times within 30 minutes enhances deep REM cycles and morning energy.</p>
+            </div>
+
+            <div style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+              <div class="flex items-center gap-2" style="margin-bottom: 6px;">
+                <span style="color: #10b981;">⚡</span>
+                <span class="text-xs font-bold" style="color: var(--text-main);">Recovery Quality</span>
+              </div>
+              <p class="text-xs text-muted" id="sleepInsightQuality" style="line-height: 1.5;">Quality scores above 80 indicate optimal cellular repair, muscular replenishment, and hormonal balance.</p>
+            </div>
+
+            <div style="background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+              <div class="flex items-center gap-2" style="margin-bottom: 6px;">
+                <span style="color: #f59e0b;">🎯</span>
+                <span class="text-xs font-bold" style="color: var(--text-main);">Monthly Sleep Goal</span>
+              </div>
+              <p class="text-xs text-muted" id="sleepInsightGoal" style="line-height: 1.5;">Targeting 8.0 hours nightly minimizes metabolic stress and supports balanced dietary appetite regulation.</p>
+            </div>
+          </div>
+        </div>
+
       </main>
+    </div>
+  </div>
+
+  <!-- Modal to log/edit sleep for a specific date -->
+  <div id="logSleepDateModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="flex justify-between items-center" style="margin-bottom: 16px;">
+        <div class="flex items-center gap-2">
+          <span style="color: #6366f1; display: inline-flex;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <h3 class="font-bold text-lg" style="color: var(--text-main);" id="logSleepModalTitle">Log Sleep Session</h3>
+        </div>
+        <button type="button" class="btn text-muted" onclick="closeLogSleepModal()" style="font-size: 1.5rem; line-height: 1; border: none; background: transparent; cursor: pointer;">&times;</button>
+      </div>
+
+      <form id="logSleepDateForm" onsubmit="handleDateSleepSubmit(event)">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Sleep Date:</label>
+          <input type="date" id="modalSleepDate" required class="form-control" style="width: 100%;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div class="form-group">
+            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Bedtime:</label>
+            <input type="time" id="modalBedtime" value="23:00" required class="form-control" style="width: 100%;" oninput="calculateModalDuration()">
+          </div>
+          <div class="form-group">
+            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Wake Time:</label>
+            <input type="time" id="modalWakeTime" value="06:30" required class="form-control" style="width: 100%;" oninput="calculateModalDuration()">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+          <div class="form-group">
+            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Duration (Hours):</label>
+            <input type="number" id="modalDuration" step="0.01" min="0" max="24" value="7.5" readonly required class="form-control" style="width: 100%;">
+          </div>
+          <div class="form-group">
+            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Quality Score (1-100):</label>
+            <input type="number" id="modalQuality" min="1" max="100" value="85" required class="form-control" style="width: 100%;">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Quick Presets:</label>
+          <div class="flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('23:30', '06:30')">7.0h (11:30 PM - 6:30 AM)</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('23:00', '06:30')">7.5h (11:00 PM - 6:30 AM)</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('22:30', '06:30')">8.0h (10:30 PM - 6:30 AM)</button>
+            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('22:00', '06:30')">8.5h (10:00 PM - 6:30 AM)</button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Notes / Observations (Optional):</label>
+          <input type="text" id="modalSleepNotes" placeholder="e.g. Deep sleep, woke refreshed" class="form-control" style="width: 100%;">
+        </div>
+
+        <div class="flex justify-end gap-3" style="border-top: 1px solid var(--border); padding-top: 16px;">
+          <button type="button" class="btn btn-outline" onclick="closeLogSleepModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none;">Save Sleep Entry</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script src="../assets/js/main.js"></script>
   <script>
     const API_URL = 'http://localhost:5000/api';
+    let currentSelectedSleepMonth = '';
+    let currentSleepView = 'daily';     // 'daily' | 'annual'
+    let currentSleepMetric = 'duration'; // 'duration' | 'quality'
+    let currentSleepMonthData = null;
     
     function getToken() {
       return localStorage.getItem('shd_token');
@@ -184,11 +466,32 @@
       durationInput.value = ((wakeMinutes - bedtimeMinutes) / 60).toFixed(2);
     }
 
-    function localDateTime(date, time) {
-      const [hours, minutes] = time.split(':').map(Number);
-      const value = new Date(date);
-      value.setHours(hours, minutes, 0, 0);
-      return value.toISOString();
+    function calculateModalDuration() {
+      const bedtime = document.getElementById('modalBedtime').value;
+      const wakeTime = document.getElementById('modalWakeTime').value;
+      const durationInput = document.getElementById('modalDuration');
+      if (!bedtime || !wakeTime) {
+        durationInput.value = '';
+        return;
+      }
+
+      const [bedHour, bedMinute] = bedtime.split(':').map(Number);
+      const [wakeHour, wakeMinute] = wakeTime.split(':').map(Number);
+      const bedtimeMinutes = bedHour * 60 + bedMinute;
+      let wakeMinutes = wakeHour * 60 + wakeMinute;
+      if (wakeMinutes <= bedtimeMinutes) wakeMinutes += 24 * 60;
+      durationInput.value = ((wakeMinutes - bedtimeMinutes) / 60).toFixed(2);
+    }
+
+    function applySleepPreset(bed, wake) {
+      document.getElementById('modalBedtime').value = bed;
+      document.getElementById('modalWakeTime').value = wake;
+      calculateModalDuration();
+    }
+
+    function getTodayDateString() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     async function renderSleepTracker() {
@@ -206,15 +509,15 @@
           document.getElementById('sleepQualityVal').textContent = `${sleep.quality_score}/100`;
           
           let scheduleText = "";
-            if (sleep.bedtime && sleep.wake_time) {
-              const bedtime = new Date(sleep.bedtime);
-              const wakeTime = new Date(sleep.wake_time);
-              document.getElementById('bedtime').value = `${String(bedtime.getHours()).padStart(2, '0')}:${String(bedtime.getMinutes()).padStart(2, '0')}`;
-              document.getElementById('wakeTime').value = `${String(wakeTime.getHours()).padStart(2, '0')}:${String(wakeTime.getMinutes()).padStart(2, '0')}`;
-              document.getElementById('durationHours').value = Number(sleep.duration_hours).toFixed(2);
-              scheduleText = `${formatTime(document.getElementById('bedtime').value)} – ${formatTime(document.getElementById('wakeTime').value)}`;
+          if (sleep.bedtime && sleep.wake_time) {
+            const bedtime = new Date(sleep.bedtime);
+            const wakeTime = new Date(sleep.wake_time);
+            document.getElementById('bedtime').value = `${String(bedtime.getHours()).padStart(2, '0')}:${String(bedtime.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('wakeTime').value = `${String(wakeTime.getHours()).padStart(2, '0')}:${String(wakeTime.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('durationHours').value = Number(sleep.duration_hours).toFixed(2);
+            scheduleText = `${formatTime(document.getElementById('bedtime').value)} – ${formatTime(document.getElementById('wakeTime').value)}`;
           } else {
-              scheduleText = "Not logged";
+            scheduleText = "Not logged";
           }
           document.getElementById('sleepScheduleVal').textContent = scheduleText;
         }
@@ -223,6 +526,659 @@
       }
     }
 
+    // Load monthly sleep data
+    async function loadMonthlySleep(monthKey) {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        let url = `${API_URL}/tracking/sleep/monthly`;
+        if (monthKey) {
+          url += `?month=${encodeURIComponent(monthKey)}`;
+        }
+
+        const res = await fetch(url, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          console.error("Failed to load monthly sleep data:", data.message);
+          return;
+        }
+
+        currentSleepMonthData = data;
+        currentSelectedSleepMonth = data.month;
+
+        // Populate month picker dropdown
+        updateSleepMonthPicker(data.available_months || [data.month], data.month);
+
+        // Update 4 Summary Stat Cards
+        const sum = data.summary;
+        const targetHours = Number(data.target_hours || 8.0);
+        
+        document.getElementById('statSleepAvgHours').textContent = (sum.avg_duration_hours || 0).toFixed(1);
+        document.getElementById('statSleepTargetCompare').textContent = `Target: ${targetHours.toFixed(1)} hrs`;
+        
+        document.getElementById('statSleepAvgQuality').textContent = sum.avg_quality_score || 0;
+        const qualityTierElem = document.getElementById('statSleepQualityTier');
+        const avgQ = sum.avg_quality_score || 0;
+        if (avgQ >= 80) {
+          qualityTierElem.textContent = 'Optimal Rest';
+          qualityTierElem.className = 'badge badge-success text-xs';
+        } else if (avgQ >= 70) {
+          qualityTierElem.textContent = 'Good Recovery';
+          qualityTierElem.className = 'badge badge-primary text-xs';
+        } else if (avgQ >= 55) {
+          qualityTierElem.textContent = 'Moderate Rest';
+          qualityTierElem.className = 'badge badge-warning text-xs';
+        } else {
+          qualityTierElem.textContent = 'Needs Attention';
+          qualityTierElem.className = 'badge badge-danger text-xs';
+        }
+
+        document.getElementById('statSleepTargetDays').textContent = `${sum.days_target_met} / ${sum.days_logged} Days`;
+        document.getElementById('statSleepConsistencyRate').textContent = `${sum.completion_rate}%`;
+        document.getElementById('statSleepTargetDaysSub').textContent = `Nights ≥ ${targetHours.toFixed(1)} hrs`;
+
+        if (sum.best_night && sum.best_night.duration_hours) {
+          document.getElementById('statSleepBestDuration').textContent = Number(sum.best_night.duration_hours).toFixed(1);
+          const bestDate = new Date(sum.best_night.date + 'T00:00:00');
+          const dateFmt = bestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          document.getElementById('statSleepBestLabel').textContent = `${dateFmt} (Score: ${sum.best_night.quality_score || 'N/A'})`;
+        } else {
+          document.getElementById('statSleepBestDuration').textContent = '0.0';
+          document.getElementById('statSleepBestLabel').textContent = 'No record yet';
+        }
+
+        // Update insight cards dynamically
+        if (sum.avg_duration_hours >= targetHours) {
+          document.getElementById('sleepInsightGoal').textContent = `Excellent job! Your monthly average (${sum.avg_duration_hours}h) meets your ${targetHours}h nightly target.`;
+        } else if (sum.days_logged > 0) {
+          const deficit = (targetHours - sum.avg_duration_hours).toFixed(1);
+          document.getElementById('sleepInsightGoal').textContent = `You are averaging ${deficit} hrs below your ${targetHours}h goal. Aim to sleep 20-30 mins earlier.`;
+        }
+
+        // Render diagram
+        renderCurrentSleepDiagram();
+
+      } catch (err) {
+        console.error("Error loading monthly sleep stats:", err);
+      }
+    }
+
+    function updateSleepMonthPicker(availableMonths, selectedMonth) {
+      const select = document.getElementById('sleepMonthPicker');
+      if (!select) return;
+
+      select.innerHTML = '';
+      availableMonths.forEach(mKey => {
+        const [year, month] = mKey.split('-');
+        const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+        const label = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        const opt = document.createElement('option');
+        opt.value = mKey;
+        opt.textContent = label;
+        if (mKey === selectedMonth) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function handleSleepMonthChange(monthKey) {
+      loadMonthlySleep(monthKey);
+    }
+
+    function switchSleepMetric(metric) {
+      currentSleepMetric = metric;
+      const durBtn = document.getElementById('metricDurationBtn');
+      const qualBtn = document.getElementById('metricQualityBtn');
+
+      if (metric === 'duration') {
+        durBtn.style.background = 'var(--bg-surface)';
+        durBtn.style.color = '#4f46e5';
+        durBtn.style.boxShadow = 'var(--shadow-sm)';
+        durBtn.style.fontWeight = '700';
+
+        qualBtn.style.background = 'transparent';
+        qualBtn.style.color = 'var(--text-muted)';
+        qualBtn.style.boxShadow = 'none';
+        qualBtn.style.fontWeight = '600';
+      } else {
+        qualBtn.style.background = 'var(--bg-surface)';
+        qualBtn.style.color = '#059669';
+        qualBtn.style.boxShadow = 'var(--shadow-sm)';
+        qualBtn.style.fontWeight = '700';
+
+        durBtn.style.background = 'transparent';
+        durBtn.style.color = 'var(--text-muted)';
+        durBtn.style.boxShadow = 'none';
+        durBtn.style.fontWeight = '600';
+      }
+
+      renderCurrentSleepDiagram();
+    }
+
+    function switchSleepView(view) {
+      currentSleepView = view;
+      const dailyBtn = document.getElementById('viewDailySleepBtn');
+      const annualBtn = document.getElementById('viewAnnualSleepBtn');
+
+      if (view === 'daily') {
+        dailyBtn.style.background = 'var(--bg-surface)';
+        dailyBtn.style.color = '#4f46e5';
+        dailyBtn.style.boxShadow = 'var(--shadow-sm)';
+        dailyBtn.style.fontWeight = '700';
+
+        annualBtn.style.background = 'transparent';
+        annualBtn.style.color = 'var(--text-muted)';
+        annualBtn.style.boxShadow = 'none';
+        annualBtn.style.fontWeight = '600';
+
+        document.getElementById('sleepDiagramTitle').textContent = `Daily Sleep Breakdown (${currentSleepMonthData?.month_label || 'Current Month'})`;
+      } else {
+        annualBtn.style.background = 'var(--bg-surface)';
+        annualBtn.style.color = '#4f46e5';
+        annualBtn.style.boxShadow = 'var(--shadow-sm)';
+        annualBtn.style.fontWeight = '700';
+
+        dailyBtn.style.background = 'transparent';
+        dailyBtn.style.color = 'var(--text-muted)';
+        dailyBtn.style.boxShadow = 'none';
+        dailyBtn.style.fontWeight = '600';
+
+        document.getElementById('sleepDiagramTitle').textContent = `12-Month Sleep History & Trends`;
+      }
+
+      renderCurrentSleepDiagram();
+    }
+
+    function renderCurrentSleepDiagram() {
+      if (!currentSleepMonthData) return;
+      if (currentSleepView === 'daily') {
+        renderDailySleepDiagram();
+      } else {
+        renderAnnualSleepDiagram();
+      }
+    }
+
+    function renderDailySleepDiagram() {
+      const container = document.getElementById('sleepDiagramContainer');
+      const data = currentSleepMonthData;
+      if (!container || !data) return;
+
+      const days = data.daily_breakdown || [];
+      const targetHours = Number(data.target_hours || 8.0);
+      const isDuration = currentSleepMetric === 'duration';
+
+      // Update subtitle & legend visibility
+      document.getElementById('sleepChartDateRangeLabel').textContent = 
+        `Daily ${isDuration ? 'Duration (hrs)' : 'Quality Score (1-100)'} for ${data.month_label} · Click any bar to edit`;
+
+      const maxVal = isDuration 
+        ? Math.max(targetHours + 1.5, ...days.map(d => d.duration_hours || 0), 10.0)
+        : 100;
+
+      const svgWidth = 1000;
+      const svgHeight = 290;
+      const padLeft = 45;
+      const padRight = 30;
+      const padTop = 30;
+      const padBottom = 40;
+      const chartWidth = svgWidth - padLeft - padRight;
+      const chartHeight = svgHeight - padTop - padBottom;
+
+      const todayStr = getTodayDateString();
+
+      // Horizontal grid lines
+      const gridLevels = isDuration
+        ? [0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0].filter(v => v <= maxVal)
+        : [0, 25, 50, 75, 100];
+
+      let gridHtml = '';
+      gridLevels.forEach(val => {
+        const y = padTop + chartHeight - (val / maxVal) * chartHeight;
+        const label = isDuration ? `${val.toFixed(0)}h` : `${val}`;
+        gridHtml += `
+          <line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+          <text x="${padLeft - 8}" y="${y + 4}" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="end">${label}</text>
+        `;
+      });
+
+      // Target benchmark line
+      let benchmarkHtml = '';
+      if (isDuration) {
+        const targetY = padTop + chartHeight - (targetHours / maxVal) * chartHeight;
+        benchmarkHtml = `
+          <line x1="${padLeft}" y1="${targetY}" x2="${svgWidth - padRight}" y2="${targetY}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" />
+          <rect x="${svgWidth - padRight - 90}" y="${targetY - 11}" width="90" height="20" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+          <text x="${svgWidth - padRight - 45}" y="${targetY + 3}" fill="#b45309" font-size="10" font-weight="700" text-anchor="middle">Goal: ${targetHours.toFixed(1)}h</text>
+        `;
+      } else {
+        const optY = padTop + chartHeight - (80 / 100) * chartHeight;
+        benchmarkHtml = `
+          <line x1="${padLeft}" y1="${optY}" x2="${svgWidth - padRight}" y2="${optY}" stroke="#10b981" stroke-width="2" stroke-dasharray="6,4" />
+          <rect x="${svgWidth - padRight - 100}" y="${optY - 11}" width="100" height="20" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1" />
+          <text x="${svgWidth - padRight - 50}" y="${optY + 3}" fill="#065f46" font-size="10" font-weight="700" text-anchor="middle">Optimal: 80+</text>
+        `;
+      }
+
+      // Render Days bars
+      const numDays = days.length;
+      const slotWidth = chartWidth / numDays;
+      const barWidth = Math.max(12, Math.min(22, slotWidth * 0.75));
+
+      let barsHtml = '';
+
+      days.forEach((item, idx) => {
+        const slotX = padLeft + idx * slotWidth;
+        const barX = slotX + (slotWidth - barWidth) / 2;
+        const duration = item.duration_hours || 0;
+        const quality = item.quality_score;
+        const isLogged = item.is_logged;
+        const metTarget = item.target_met;
+        const isToday = item.date === todayStr;
+
+        const val = isDuration ? duration : (quality || 0);
+        const barH = isLogged ? Math.max(6, (val / maxVal) * chartHeight) : 4;
+        const barY = padTop + chartHeight - barH;
+
+        let fill = '#e2e8f0';
+        if (isLogged) {
+          if (isDuration) {
+            if (metTarget) {
+              fill = 'url(#sleepGradientSuccess)';
+            } else if (duration < 6.0) {
+              fill = 'url(#sleepGradientWarning)';
+            } else {
+              fill = 'url(#sleepGradientPrimary)';
+            }
+          } else {
+            if (quality >= 80) {
+              fill = 'url(#sleepGradientSuccess)';
+            } else if (quality >= 60) {
+              fill = 'url(#sleepGradientPrimary)';
+            } else {
+              fill = 'url(#sleepGradientWarning)';
+            }
+          }
+        }
+
+        // Quality indicator dot (on duration mode)
+        let dotHtml = '';
+        if (isDuration && isLogged && quality !== null) {
+          const dotY = barY - 7;
+          let dotColor = quality >= 80 ? '#06b6d4' : (quality >= 60 ? '#6366f1' : '#f59e0b');
+          dotHtml = `
+            <circle class="chart-dot" cx="${barX + barWidth / 2}" cy="${dotY}" r="3.5" fill="${dotColor}" stroke="#ffffff" stroke-width="1" />
+          `;
+        }
+
+        barsHtml += `
+          <g class="chart-bar-group" 
+             data-date="${item.date}" 
+             data-day="${item.day}" 
+             data-dayname="${item.day_name}" 
+             data-duration="${duration}" 
+             data-quality="${quality !== null ? quality : ''}" 
+             data-bedtime="${item.bedtime || ''}" 
+             data-waketime="${item.wake_time || ''}" 
+             data-notes="${item.notes ? encodeURIComponent(item.notes) : ''}"
+             data-target="${targetHours}" 
+             data-logged="${isLogged}" 
+             data-met="${metTarget}"
+             onclick="handleBarClick('${item.date}')" 
+             style="cursor: pointer;">
+            
+            <!-- Invisible click area -->
+            <rect x="${slotX}" y="${padTop}" width="${slotWidth}" height="${chartHeight + 35}" fill="transparent" />
+
+            <!-- Pillar line if not logged -->
+            ${!isLogged ? `<rect x="${barX + barWidth / 2 - 1}" y="${padTop + 15}" width="2" height="${chartHeight - 15}" fill="#f1f5f9" rx="1" />` : ''}
+
+            <!-- Bar -->
+            <rect class="chart-bar-rect" x="${barX}" y="${barY}" width="${barWidth}" height="${barH}" rx="4" fill="${fill}" />
+
+            <!-- Quality Dot -->
+            ${dotHtml}
+
+            <!-- Today Ring Indicator -->
+            ${isToday ? `<circle cx="${barX + barWidth / 2}" cy="${padTop + chartHeight + 28}" r="3" fill="#6366f1" />` : ''}
+
+            <!-- Day number text on X-axis -->
+            <text x="${barX + barWidth / 2}" y="${padTop + chartHeight + 18}" fill="${isToday ? '#4f46e5' : '#64748b'}" font-size="11" font-weight="${isToday ? '800' : '600'}" text-anchor="middle">${item.day}</text>
+          </g>
+        `;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width: 100%; height: 290px; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="sleepGradientPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#4f46e5" />
+            </linearGradient>
+            <linearGradient id="sleepGradientSuccess" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#34d399" />
+              <stop offset="100%" stop-color="#059669" />
+            </linearGradient>
+            <linearGradient id="sleepGradientWarning" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#fbbf24" />
+              <stop offset="100%" stop-color="#d97706" />
+            </linearGradient>
+          </defs>
+          ${gridHtml}
+          ${benchmarkHtml}
+          ${barsHtml}
+        </svg>
+      `;
+
+      setupSleepChartTooltips();
+    }
+
+    function renderAnnualSleepDiagram() {
+      const container = document.getElementById('sleepDiagramContainer');
+      const data = currentSleepMonthData;
+      if (!container || !data) return;
+
+      const history = data.history || [];
+      const targetHours = Number(data.target_hours || 8.0);
+
+      document.getElementById('sleepChartDateRangeLabel').textContent = 
+        `Average Monthly Sleep Duration & Target Consistency · Click any month to view daily breakdown`;
+
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div style="height: 290px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="opacity: 0.4; margin-bottom: 8px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <p class="font-bold text-sm">No historical sleep data yet</p>
+            <p class="text-xs">Log sessions to accumulate monthly recovery insights.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Display up to 12 months in chronological order
+      const items = [...history].reverse();
+      const maxVal = Math.max(targetHours + 1.5, ...items.map(m => m.avg_duration_hours || 0), 10.0);
+
+      const svgWidth = 1000;
+      const svgHeight = 290;
+      const padLeft = 45;
+      const padRight = 30;
+      const padTop = 30;
+      const padBottom = 40;
+      const chartWidth = svgWidth - padLeft - padRight;
+      const chartHeight = svgHeight - padTop - padBottom;
+
+      // Horizontal grid
+      let gridHtml = '';
+      [0, 2.0, 4.0, 6.0, 8.0, 10.0].forEach(val => {
+        const y = padTop + chartHeight - (val / maxVal) * chartHeight;
+        gridHtml += `
+          <line x1="${padLeft}" y1="${y}" x2="${svgWidth - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+          <text x="${padLeft - 8}" y="${y + 4}" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="end">${val}h</text>
+        `;
+      });
+
+      // Target benchmark line
+      const targetY = padTop + chartHeight - (targetHours / maxVal) * chartHeight;
+      const benchmarkHtml = `
+        <line x1="${padLeft}" y1="${targetY}" x2="${svgWidth - padRight}" y2="${targetY}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" />
+        <text x="${svgWidth - padRight - 8}" y="${targetY - 6}" fill="#b45309" font-size="11" font-weight="700" text-anchor="end">Goal: ${targetHours.toFixed(1)}h</text>
+      `;
+
+      const slotWidth = chartWidth / items.length;
+      const barWidth = Math.max(24, Math.min(48, slotWidth * 0.55));
+      let barsHtml = '';
+
+      items.forEach((item, idx) => {
+        const slotX = padLeft + idx * slotWidth;
+        const barX = slotX + (slotWidth - barWidth) / 2;
+        const avg = item.avg_duration_hours || 0;
+        const barH = Math.max(8, (avg / maxVal) * chartHeight);
+        const barY = padTop + chartHeight - barH;
+        const isCurrent = item.month_key === currentSelectedSleepMonth;
+        const metTarget = avg >= targetHours;
+        const fill = metTarget ? 'url(#sleepGradientSuccess)' : 'url(#sleepGradientPrimary)';
+
+        barsHtml += `
+          <g class="chart-bar-group" 
+             data-annual="true"
+             data-monthkey="${item.month_key}" 
+             data-monthlabel="${item.month_label}" 
+             data-avg="${avg}" 
+             data-quality="${item.avg_quality_score || 0}"
+             data-days="${item.days_logged || 0}" 
+             data-targetmet="${item.days_target_met || 0}" 
+             onclick="selectAnnualMonth('${item.month_key}')" 
+             style="cursor: pointer;">
+            
+            <rect x="${slotX}" y="${padTop}" width="${slotWidth}" height="${chartHeight + 35}" fill="transparent" />
+            <rect class="chart-bar-rect" x="${barX}" y="${barY}" width="${barWidth}" height="${barH}" rx="5" fill="${fill}" />
+
+            <!-- Average Value label above bar -->
+            <text x="${barX + barWidth / 2}" y="${barY - 6}" fill="#475569" font-size="11" font-weight="700" text-anchor="middle">${avg.toFixed(1)}h</text>
+
+            <!-- Month Label on X-axis -->
+            <text x="${barX + barWidth / 2}" y="${padTop + chartHeight + 18}" fill="${isCurrent ? '#4f46e5' : '#64748b'}" font-size="11" font-weight="${isCurrent ? '800' : '600'}" text-anchor="middle">${item.month_label.split(' ')[0]}</text>
+          </g>
+        `;
+      });
+
+      container.innerHTML = `
+        <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width: 100%; height: 290px; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="sleepGradientPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#818cf8" />
+              <stop offset="100%" stop-color="#4f46e5" />
+            </linearGradient>
+            <linearGradient id="sleepGradientSuccess" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#34d399" />
+              <stop offset="100%" stop-color="#059669" />
+            </linearGradient>
+          </defs>
+          ${gridHtml}
+          ${benchmarkHtml}
+          ${barsHtml}
+        </svg>
+      `;
+
+      setupSleepChartTooltips();
+    }
+
+    function selectAnnualMonth(monthKey) {
+      currentSelectedSleepMonth = monthKey;
+      switchSleepView('daily');
+      loadMonthlySleep(monthKey);
+    }
+
+    function setupSleepChartTooltips() {
+      const tooltip = document.getElementById('sleepChartTooltip');
+      const container = document.getElementById('sleepDiagramContainer');
+      if (!tooltip || !container) return;
+
+      const barGroups = container.querySelectorAll('.chart-bar-group');
+
+      barGroups.forEach(group => {
+        group.addEventListener('mouseenter', (e) => {
+          const isAnnual = group.dataset.annual === 'true';
+
+          if (isAnnual) {
+            const mLabel = group.dataset.monthlabel;
+            const avg = group.dataset.avg;
+            const quality = group.dataset.quality;
+            const days = group.dataset.days;
+            const targetMet = group.dataset.targetmet;
+
+            tooltip.innerHTML = `
+              <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; color: #a5b4fc;">${mLabel}</div>
+              <div style="font-size: 0.75rem; margin-bottom: 2px;">Avg Sleep: <strong>${avg} hrs/night</strong></div>
+              <div style="font-size: 0.75rem; margin-bottom: 2px;">Avg Quality: <strong>${quality}/100</strong></div>
+              <div style="font-size: 0.75rem; color: #94a3b8;">Logged: ${days} days · Met Goal: ${targetMet} days</div>
+              <div style="font-size: 0.7rem; color: #38bdf8; margin-top: 4px;">Click to view daily details</div>
+            `;
+          } else {
+            const dateStr = group.dataset.date;
+            const dayName = group.dataset.dayname;
+            const isLogged = group.dataset.logged === 'true';
+            const duration = parseFloat(group.dataset.duration || 0);
+            const quality = group.dataset.quality;
+            const bedtime = group.dataset.bedtime;
+            const wakeTime = group.dataset.waketime;
+            const target = group.dataset.target;
+            const notes = group.dataset.notes ? decodeURIComponent(group.dataset.notes) : '';
+
+            const dateObj = new Date(dateStr + 'T00:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            if (isLogged) {
+              let scheduleStr = 'Not specified';
+              if (bedtime && wakeTime) {
+                const bDate = new Date(bedtime);
+                const wDate = new Date(wakeTime);
+                const bTime = `${String(bDate.getHours()).padStart(2, '0')}:${String(bDate.getMinutes()).padStart(2, '0')}`;
+                const wTime = `${String(wDate.getHours()).padStart(2, '0')}:${String(wDate.getMinutes()).padStart(2, '0')}`;
+                scheduleStr = `${formatTime(bTime)} → ${formatTime(wTime)}`;
+              }
+
+              let statusBadge = duration >= target 
+                ? '<span style="color: #34d399; font-weight: 700;">✓ Goal Reached</span>'
+                : `<span style="color: #fbbf24; font-weight: 600;">${(target - duration).toFixed(1)}h under goal</span>`;
+
+              tooltip.innerHTML = `
+                <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; color: #a5b4fc;">${dayName}, ${formattedDate}</div>
+                <div style="font-size: 0.75rem; margin-bottom: 3px;">Duration: <strong style="color: #fff; font-size: 0.85rem;">${duration.toFixed(2)} hrs</strong> (${statusBadge})</div>
+                <div style="font-size: 0.75rem; margin-bottom: 3px;">Quality Index: <strong style="color: #38bdf8;">${quality ? quality + '/100' : 'N/A'}</strong></div>
+                <div style="font-size: 0.7rem; color: #cbd5e1; margin-bottom: 3px;">Schedule: ${scheduleStr}</div>
+                ${notes ? `<div style="font-size: 0.7rem; color: #94a3b8; font-style: italic; margin-bottom: 3px;">Note: "${notes}"</div>` : ''}
+                <div style="font-size: 0.7rem; color: #818cf8; margin-top: 5px;">Click bar to edit or log notes</div>
+              `;
+            } else {
+              tooltip.innerHTML = `
+                <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; color: #94a3b8;">${dayName}, ${formattedDate}</div>
+                <div style="font-size: 0.75rem; color: #f87171; margin-bottom: 4px;">No sleep log recorded</div>
+                <div style="font-size: 0.7rem; color: #38bdf8;">Click to log sleep session for this day</div>
+              `;
+            }
+          }
+
+          tooltip.style.display = 'block';
+          tooltip.style.opacity = '1';
+        });
+
+        group.addEventListener('mousemove', (e) => {
+          const containerRect = container.getBoundingClientRect();
+          const x = e.clientX - containerRect.left;
+          const y = e.clientY - containerRect.top;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+        });
+
+        group.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      });
+    }
+
+    function handleBarClick(dateStr) {
+      if (!currentSleepMonthData) return;
+      const dayData = (currentSleepMonthData.daily_breakdown || []).find(d => d.date === dateStr);
+      openLogSleepModal(dateStr, dayData);
+    }
+
+    function openLogSleepModal(dateStr, existingData) {
+      const modal = document.getElementById('logSleepDateModal');
+      const dateInput = document.getElementById('modalSleepDate');
+      const bedInput = document.getElementById('modalBedtime');
+      const wakeInput = document.getElementById('modalWakeTime');
+      const durationInput = document.getElementById('modalDuration');
+      const qualityInput = document.getElementById('modalQuality');
+      const notesInput = document.getElementById('modalSleepNotes');
+      const titleElem = document.getElementById('logSleepModalTitle');
+
+      const targetDate = dateStr || getTodayDateString();
+      dateInput.value = targetDate;
+
+      if (existingData && existingData.is_logged) {
+        titleElem.textContent = `Edit Sleep for ${targetDate}`;
+        if (existingData.bedtime && existingData.wake_time) {
+          const bDate = new Date(existingData.bedtime);
+          const wDate = new Date(existingData.wake_time);
+          bedInput.value = `${String(bDate.getHours()).padStart(2, '0')}:${String(bDate.getMinutes()).padStart(2, '0')}`;
+          wakeInput.value = `${String(wDate.getHours()).padStart(2, '0')}:${String(wDate.getMinutes()).padStart(2, '0')}`;
+        }
+        durationInput.value = Number(existingData.duration_hours).toFixed(2);
+        qualityInput.value = existingData.quality_score || 85;
+        notesInput.value = existingData.notes || '';
+      } else {
+        titleElem.textContent = `Log Sleep for ${targetDate}`;
+        bedInput.value = '23:00';
+        wakeInput.value = '06:30';
+        durationInput.value = '7.50';
+        qualityInput.value = '85';
+        notesInput.value = '';
+      }
+
+      calculateModalDuration();
+      modal.style.display = 'flex';
+    }
+
+    function closeLogSleepModal() {
+      const modal = document.getElementById('logSleepDateModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function handleDateSleepSubmit(e) {
+      e.preventDefault();
+      const token = getToken();
+      if (!token) return;
+
+      calculateModalDuration();
+      const dateStr = document.getElementById('modalSleepDate').value;
+      const bedTimeInput = document.getElementById('modalBedtime').value;
+      const wakeTimeInput = document.getElementById('modalWakeTime').value;
+      const duration = parseFloat(document.getElementById('modalDuration').value);
+      const quality = parseInt(document.getElementById('modalQuality').value);
+      const notes = document.getElementById('modalSleepNotes').value;
+
+      const bedtimeDate = new Date(`${dateStr}T${bedTimeInput}:00`);
+      const wakeDate = new Date(`${dateStr}T${wakeTimeInput}:00`);
+      if (wakeDate <= bedtimeDate) wakeDate.setDate(wakeDate.getDate() + 1);
+
+      const payload = {
+        date: dateStr,
+        duration_hours: duration,
+        quality_score: quality,
+        bedtime: bedtimeDate.toISOString(),
+        wake_time: wakeDate.toISOString(),
+        notes: notes
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/tracking/sleep`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to save sleep log');
+
+        closeLogSleepModal();
+        await renderSleepTracker();
+        await loadMonthlySleep(currentSelectedSleepMonth);
+        alert('Sleep log saved successfully.');
+      } catch (err) {
+        console.error("Error logging sleep session:", err);
+        alert(`Failed to save sleep log: ${err.message}`);
+      }
+    }
+
+    // Top form submit handler
     document.getElementById('sleepForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const token = getToken();
@@ -261,6 +1217,7 @@
         
         if (!res.ok || !data.success) throw new Error(data.message || 'Failed to save sleep log');
         await renderSleepTracker();
+        await loadMonthlySleep(currentSelectedSleepMonth);
         alert('Sleep log saved successfully.');
       } catch (err) {
         console.error("Error logging sleep:", err);
@@ -272,7 +1229,11 @@
     document.getElementById('wakeTime').addEventListener('input', calculateDuration);
     document.getElementById('sleepDate').value = new Date().toISOString().split('T')[0];
     calculateDuration();
-    document.addEventListener('DOMContentLoaded', renderSleepTracker);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderSleepTracker();
+      loadMonthlySleep();
+    });
   </script>
 </body>
 </html>
