@@ -20,9 +20,14 @@ pool.on("error", (error) => {
     console.error("Unexpected PostgreSQL error:", error);
 });
 
-// Auto-migration: Ensure user_profiles has avatar_url column
+// Auto-migration: Ensure user_profiles has avatar_url column and dietitian_profiles has extended settings
 pool.query(`
     ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+    ALTER TABLE dietitian_profiles ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);
+    ALTER TABLE dietitian_profiles ADD COLUMN IF NOT EXISTS license_number VARCHAR(100);
+    ALTER TABLE dietitian_profiles ADD COLUMN IF NOT EXISTS consultation_fee NUMERIC(8, 2) DEFAULT 0.00;
+    ALTER TABLE dietitian_profiles ADD COLUMN IF NOT EXISTS max_clients INTEGER DEFAULT 50;
+    ALTER TABLE dietitian_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
     CREATE INDEX IF NOT EXISTS water_logs_user_date_idx ON water_logs (user_id, log_date DESC);
     CREATE OR REPLACE VIEW user_monthly_water_summary AS
     SELECT

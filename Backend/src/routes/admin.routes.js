@@ -12,10 +12,16 @@ import {
     getDietitians,
     getDietitianById,
     createDietitian,
+    updateDietitianDetails,
+    toggleDietitianStatus,
     approveDietitian,
     rejectDietitian,
     suspendDietitian,
     deleteDietitian,
+    getAvailableUsersForDietitian,
+    assignUserToDietitian,
+    unassignUserFromDietitian,
+    resetDietitianPassword,
     getFoodCatalog,
     getFoodById,
     createFoodItem,
@@ -52,10 +58,16 @@ router.delete("/users/:id", deleteUser);
 router.get("/dietitians", getDietitians);
 router.post("/dietitians", createDietitian);
 router.get("/dietitians/:id", getDietitianById);
+router.put("/dietitians/:id", updateDietitianDetails);
+router.patch("/dietitians/:id/toggle-status", toggleDietitianStatus);
 router.patch("/dietitians/:id/approve", approveDietitian);
 router.patch("/dietitians/:id/reject", rejectDietitian);
 router.patch("/dietitians/:id/suspend", suspendDietitian);
 router.delete("/dietitians/:id", deleteDietitian);
+router.get("/dietitians/:id/available-users", getAvailableUsersForDietitian);
+router.post("/dietitians/:id/assign-user", assignUserToDietitian);
+router.delete("/dietitians/:id/unassign-user/:userId", unassignUserFromDietitian);
+router.post("/dietitians/:id/reset-password", resetDietitianPassword);
 
 // 4. Food Database Catalog Management
 router.get("/foods", getFoodCatalog);

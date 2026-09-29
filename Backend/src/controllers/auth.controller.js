@@ -125,7 +125,7 @@ export const register = async (req, res) => {
 
     } catch (error) {
         if (client) {
-            await client.query("ROLLBACK").catch(() => {});
+            await client.query("ROLLBACK").catch(() => { });
         }
 
         console.error("Register error:", error);
@@ -260,8 +260,7 @@ export const login = async (req, res) => {
 // LOGOUT
 // ===============================
 export const logout = async (req, res) => {
-    // For JWT, logout is usually handled client-side by deleting the token.
-    // We can just return a success message here.
+
     return res.status(200).json({
         success: true,
         message: "Logout successful"
