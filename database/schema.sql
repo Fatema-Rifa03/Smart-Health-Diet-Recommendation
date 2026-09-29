@@ -305,3 +305,5 @@ SELECT
 FROM sleep_logs
 GROUP BY user_id, DATE_TRUNC('month', date), TO_CHAR(date, 'YYYY-MM');
 
+CREATE INDEX IF NOT EXISTS sleep_logs_user_date_idx ON sleep_logs (user_id, date DESC);
+

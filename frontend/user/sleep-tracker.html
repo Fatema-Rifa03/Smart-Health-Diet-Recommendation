@@ -373,52 +373,149 @@
           <span style="color: #6366f1; display: inline-flex;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </span>
-          <h3 class="font-bold text-lg" style="color: var(--text-main);" id="logSleepModalTitle">Log Sleep Session</h3>
+          <h3 class="font-bold text-lg" style="color: var(--text-main);" id="logSleepModalTitle">Log Sleep</h3>
         </div>
         <button type="button" class="btn text-muted" onclick="closeLogSleepModal()" style="font-size: 1.5rem; line-height: 1; border: none; background: transparent; cursor: pointer;">&times;</button>
       </div>
 
       <form id="logSleepDateForm" onsubmit="handleDateSleepSubmit(event)">
+        <!-- Date Selection: quick dropdown + native picker -->
         <div class="form-group" style="margin-bottom: 14px;">
           <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Sleep Date:</label>
-          <input type="date" id="modalSleepDate" required class="form-control" style="width: 100%;">
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;">
+            <select id="modalDateSelect" class="form-control" style="cursor: pointer;" onchange="handleModalDateSelect(this.value)">
+              <option value="" disabled selected>-- Select Past Date --</option>
+            </select>
+            <input type="date" id="modalSleepDate" required class="form-control" style="cursor: pointer;" onchange="syncModalDateSelect(this.value)">
+          </div>
         </div>
 
+        <!-- Bedtime and Wake Time Dropdowns -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
           <div class="form-group">
             <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Bedtime:</label>
-            <input type="time" id="modalBedtime" value="23:00" required class="form-control" style="width: 100%;" oninput="calculateModalDuration()">
+            <select id="modalBedtime" class="form-control" style="width: 100%; cursor: pointer;" onchange="calculateModalDuration()">
+              <option value="" disabled selected>-- Select Bedtime --</option>
+              <option value="19:00">07:00 PM</option>
+              <option value="19:30">07:30 PM</option>
+              <option value="20:00">08:00 PM</option>
+              <option value="20:30">08:30 PM</option>
+              <option value="21:00">09:00 PM</option>
+              <option value="21:15">09:15 PM</option>
+              <option value="21:30">09:30 PM</option>
+              <option value="21:45">09:45 PM</option>
+              <option value="22:00">10:00 PM</option>
+              <option value="22:15">10:15 PM</option>
+              <option value="22:30">10:30 PM</option>
+              <option value="22:45">10:45 PM</option>
+              <option value="23:00">11:00 PM</option>
+              <option value="23:15">11:15 PM</option>
+              <option value="23:30">11:30 PM</option>
+              <option value="23:45">11:45 PM</option>
+              <option value="00:00">12:00 AM (Midnight)</option>
+              <option value="00:15">12:15 AM</option>
+              <option value="00:30">12:30 AM</option>
+              <option value="00:45">12:45 AM</option>
+              <option value="01:00">01:00 AM</option>
+              <option value="01:30">01:30 AM</option>
+              <option value="02:00">02:00 AM</option>
+              <option value="02:30">02:30 AM</option>
+              <option value="03:00">03:00 AM</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Wake Time:</label>
-            <input type="time" id="modalWakeTime" value="06:30" required class="form-control" style="width: 100%;" oninput="calculateModalDuration()">
+            <select id="modalWakeTime" class="form-control" style="width: 100%; cursor: pointer;" onchange="calculateModalDuration()">
+              <option value="" disabled selected>-- Select Wake Time --</option>
+              <option value="04:00">04:00 AM</option>
+              <option value="04:30">04:30 AM</option>
+              <option value="05:00">05:00 AM</option>
+              <option value="05:15">05:15 AM</option>
+              <option value="05:30">05:30 AM</option>
+              <option value="05:45">05:45 AM</option>
+              <option value="06:00">06:00 AM</option>
+              <option value="06:15">06:15 AM</option>
+              <option value="06:30">06:30 AM</option>
+              <option value="06:45">06:45 AM</option>
+              <option value="07:00">07:00 AM</option>
+              <option value="07:15">07:15 AM</option>
+              <option value="07:30">07:30 AM</option>
+              <option value="07:45">07:45 AM</option>
+              <option value="08:00">08:00 AM</option>
+              <option value="08:15">08:15 AM</option>
+              <option value="08:30">08:30 AM</option>
+              <option value="08:45">08:45 AM</option>
+              <option value="09:00">09:00 AM</option>
+              <option value="09:30">09:30 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="10:30">10:30 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="12:00">12:00 PM (Noon)</option>
+            </select>
           </div>
         </div>
 
+        <!-- Duration and Quality Score Dropdowns -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
           <div class="form-group">
-            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Duration (Hours):</label>
-            <input type="number" id="modalDuration" step="0.01" min="0" max="24" value="7.5" readonly required class="form-control" style="width: 100%;">
+            <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Total Duration:</label>
+            <select id="modalDuration" required class="form-control" style="width: 100%; cursor: pointer;">
+              <option value="" disabled selected>-- Select Duration --</option>
+              <option value="4.00">4.0 Hours</option>
+              <option value="4.50">4.5 Hours</option>
+              <option value="5.00">5.0 Hours</option>
+              <option value="5.50">5.5 Hours</option>
+              <option value="6.00">6.0 Hours</option>
+              <option value="6.50">6.5 Hours</option>
+              <option value="7.00">7.0 Hours</option>
+              <option value="7.25">7h 15m (7.25 hrs)</option>
+              <option value="7.50">7.5 Hours (7h 30m)</option>
+              <option value="7.75">7h 45m (7.75 hrs)</option>
+              <option value="8.00">8.0 Hours (Optimal Goal)</option>
+              <option value="8.25">8h 15m (8.25 hrs)</option>
+              <option value="8.50">8.5 Hours</option>
+              <option value="8.75">8h 45m (8.75 hrs)</option>
+              <option value="9.00">9.0 Hours</option>
+              <option value="9.50">9.5 Hours</option>
+              <option value="10.00">10.0 Hours</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Quality Score (1-100):</label>
-            <input type="number" id="modalQuality" min="1" max="100" value="85" required class="form-control" style="width: 100%;">
+            <select id="modalQuality" required class="form-control" style="width: 100%; cursor: pointer;">
+              <option value="" disabled selected>-- Select Quality Score --</option>
+              <option value="100">100 - Exceptional / Perfect Sleep 🌟</option>
+              <option value="95">95 - Deep & Rejuvenating Rest</option>
+              <option value="90">90 - Very Restful & Refreshing</option>
+              <option value="88">88 - High REM Recovery & Refreshing</option>
+              <option value="85">85 - Optimal Sleep Recovery</option>
+              <option value="80">80 - Good Quality Sleep</option>
+              <option value="75">75 - Moderate / Normal Rest</option>
+              <option value="70">70 - Fair Rest (Woke up once)</option>
+              <option value="65">65 - Light / Fragmented Sleep</option>
+              <option value="60">60 - Restless / Interrupted Sleep</option>
+              <option value="50">50 - Poor Sleep / Fatigued</option>
+              <option value="40">40 - Very Poor / Exhausted</option>
+            </select>
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 14px;">
-          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Quick Presets:</label>
-          <div class="flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('23:30', '06:30')">7.0h (11:30 PM - 6:30 AM)</button>
-            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('23:00', '06:30')">7.5h (11:00 PM - 6:30 AM)</button>
-            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('22:30', '06:30')">8.0h (10:30 PM - 6:30 AM)</button>
-            <button type="button" class="btn btn-secondary text-xs" style="padding: 5px 10px;" onclick="applySleepPreset('22:00', '06:30')">8.5h (10:00 PM - 6:30 AM)</button>
-          </div>
-        </div>
-
+        <!-- Notes / Sleep Condition Dropdown -->
         <div class="form-group" style="margin-bottom: 20px;">
-          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Notes / Observations (Optional):</label>
-          <input type="text" id="modalSleepNotes" placeholder="e.g. Deep sleep, woke refreshed" class="form-control" style="width: 100%;">
+          <label class="text-xs font-bold text-muted block" style="margin-bottom: 6px;">Notes / Observations:</label>
+          <select id="modalSleepNotes" class="form-control" style="width: 100%; cursor: pointer;">
+            <option value="" selected>-- Select Sleep Condition / Note (Optional) --</option>
+            <option value="Woke up fully refreshed and energized">Woke up fully refreshed and energized</option>
+            <option value="Fell asleep quickly, deep restful sleep">Fell asleep quickly, deep restful sleep</option>
+            <option value="Optimal REM and muscle recovery">Optimal REM and muscle recovery</option>
+            <option value="Normal sleep, felt well-rested">Normal sleep, felt well-rested</option>
+            <option value="Woke up once during the night">Woke up once during the night</option>
+            <option value="Restless sleep / tossing and turning">Restless sleep / tossing and turning</option>
+            <option value="Late screen time before bed">Late screen time before bed</option>
+            <option value="Caffeine late in the evening">Caffeine late in the evening</option>
+            <option value="Early morning workout recovery">Early morning workout recovery</option>
+            <option value="Woke up groggy / needed more sleep">Woke up groggy / needed more sleep</option>
+          </select>
         </div>
 
         <div class="flex justify-end gap-3" style="border-top: 1px solid var(--border); padding-top: 16px;">
@@ -469,24 +566,86 @@
     function calculateModalDuration() {
       const bedtime = document.getElementById('modalBedtime').value;
       const wakeTime = document.getElementById('modalWakeTime').value;
-      const durationInput = document.getElementById('modalDuration');
-      if (!bedtime || !wakeTime) {
-        durationInput.value = '';
-        return;
-      }
+      const durationSelect = document.getElementById('modalDuration');
+      if (!bedtime || !wakeTime) return;
 
       const [bedHour, bedMinute] = bedtime.split(':').map(Number);
       const [wakeHour, wakeMinute] = wakeTime.split(':').map(Number);
       const bedtimeMinutes = bedHour * 60 + bedMinute;
       let wakeMinutes = wakeHour * 60 + wakeMinute;
       if (wakeMinutes <= bedtimeMinutes) wakeMinutes += 24 * 60;
-      durationInput.value = ((wakeMinutes - bedtimeMinutes) / 60).toFixed(2);
+      const diffHours = (wakeMinutes - bedtimeMinutes) / 60;
+      const diffFormatted = diffHours.toFixed(2);
+
+      let matched = Array.from(durationSelect.options).find(opt => {
+        return opt.value && Math.abs(parseFloat(opt.value) - diffHours) < 0.05;
+      });
+
+      if (matched) {
+        durationSelect.value = matched.value;
+      } else {
+        const hrs = Math.floor(diffHours);
+        const mins = Math.round((diffHours % 1) * 60);
+        const newOpt = document.createElement('option');
+        newOpt.value = diffFormatted;
+        newOpt.textContent = `${diffFormatted} Hours (${hrs}h ${mins}m)`;
+        durationSelect.appendChild(newOpt);
+        durationSelect.value = diffFormatted;
+      }
     }
 
-    function applySleepPreset(bed, wake) {
-      document.getElementById('modalBedtime').value = bed;
-      document.getElementById('modalWakeTime').value = wake;
-      calculateModalDuration();
+    function populateModalDateDropdown(selectedDate) {
+      const select = document.getElementById('modalDateSelect');
+      if (!select) return;
+
+      select.innerHTML = '<option value="" disabled selected>-- Select Past Date --</option>';
+
+      const today = new Date();
+      for (let i = 0; i < 31; i++) {
+        const d = new Date();
+        d.setDate(today.getDate() - i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        let label = '';
+        if (i === 0) label = `Today (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+        else if (i === 1) label = `Yesterday (${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+        else label = `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+
+        const opt = document.createElement('option');
+        opt.value = dateStr;
+        opt.textContent = label;
+        if (dateStr === selectedDate) opt.selected = true;
+        select.appendChild(opt);
+      }
+    }
+
+    function handleModalDateSelect(dateVal) {
+      if (dateVal) {
+        document.getElementById('modalSleepDate').value = dateVal;
+        if (currentSleepMonthData) {
+          const dayData = (currentSleepMonthData.daily_breakdown || []).find(d => d.date === dateVal);
+          if (dayData && dayData.is_logged) {
+            populateExistingSleepData(dayData);
+          } else {
+            clearModalSelections();
+          }
+        }
+      }
+    }
+
+    function syncModalDateSelect(dateVal) {
+      const select = document.getElementById('modalDateSelect');
+      if (select && dateVal) {
+        const opt = Array.from(select.options).find(o => o.value === dateVal);
+        if (opt) select.value = dateVal;
+        if (currentSleepMonthData) {
+          const dayData = (currentSleepMonthData.daily_breakdown || []).find(d => d.date === dateVal);
+          if (dayData && dayData.is_logged) {
+            populateExistingSleepData(dayData);
+          } else {
+            clearModalSelections();
+          }
+        }
+      }
     }
 
     function getTodayDateString() {
@@ -1090,38 +1249,79 @@
     function openLogSleepModal(dateStr, existingData) {
       const modal = document.getElementById('logSleepDateModal');
       const dateInput = document.getElementById('modalSleepDate');
-      const bedInput = document.getElementById('modalBedtime');
-      const wakeInput = document.getElementById('modalWakeTime');
-      const durationInput = document.getElementById('modalDuration');
-      const qualityInput = document.getElementById('modalQuality');
-      const notesInput = document.getElementById('modalSleepNotes');
       const titleElem = document.getElementById('logSleepModalTitle');
+
+      // Title strictly set to "Log Sleep" as requested
+      titleElem.textContent = 'Log Sleep';
+
+      // Always clear out any auto-filled/default data so user starts with clean dropdowns
+      clearModalSelections();
 
       const targetDate = dateStr || getTodayDateString();
       dateInput.value = targetDate;
+      populateModalDateDropdown(targetDate);
 
+      // Only if existing recorded data is passed (e.g. clicking an already logged bar), show that record's data
       if (existingData && existingData.is_logged) {
-        titleElem.textContent = `Edit Sleep for ${targetDate}`;
-        if (existingData.bedtime && existingData.wake_time) {
-          const bDate = new Date(existingData.bedtime);
-          const wDate = new Date(existingData.wake_time);
-          bedInput.value = `${String(bDate.getHours()).padStart(2, '0')}:${String(bDate.getMinutes()).padStart(2, '0')}`;
-          wakeInput.value = `${String(wDate.getHours()).padStart(2, '0')}:${String(wDate.getMinutes()).padStart(2, '0')}`;
-        }
-        durationInput.value = Number(existingData.duration_hours).toFixed(2);
-        qualityInput.value = existingData.quality_score || 85;
-        notesInput.value = existingData.notes || '';
-      } else {
-        titleElem.textContent = `Log Sleep for ${targetDate}`;
-        bedInput.value = '23:00';
-        wakeInput.value = '06:30';
-        durationInput.value = '7.50';
-        qualityInput.value = '85';
-        notesInput.value = '';
+        populateExistingSleepData(existingData);
       }
 
-      calculateModalDuration();
       modal.style.display = 'flex';
+    }
+
+    function clearModalSelections() {
+      const bedSelect = document.getElementById('modalBedtime');
+      const wakeSelect = document.getElementById('modalWakeTime');
+      const durationSelect = document.getElementById('modalDuration');
+      const qualitySelect = document.getElementById('modalQuality');
+      const notesSelect = document.getElementById('modalSleepNotes');
+      if (bedSelect) bedSelect.value = '';
+      if (wakeSelect) wakeSelect.value = '';
+      if (durationSelect) durationSelect.value = '';
+      if (qualitySelect) qualitySelect.value = '';
+      if (notesSelect) notesSelect.value = '';
+    }
+
+    function populateExistingSleepData(data) {
+      const bedSelect = document.getElementById('modalBedtime');
+      const wakeSelect = document.getElementById('modalWakeTime');
+      const durationSelect = document.getElementById('modalDuration');
+      const qualitySelect = document.getElementById('modalQuality');
+      const notesSelect = document.getElementById('modalSleepNotes');
+
+      if (data.bedtime && data.wake_time) {
+        const bDate = new Date(data.bedtime);
+        const wDate = new Date(data.wake_time);
+        const bTime = `${String(bDate.getHours()).padStart(2, '0')}:${String(bDate.getMinutes()).padStart(2, '0')}`;
+        const wTime = `${String(wDate.getHours()).padStart(2, '0')}:${String(wDate.getMinutes()).padStart(2, '0')}`;
+        setSelectValueOrAdd(bedSelect, bTime, formatTime(bTime));
+        setSelectValueOrAdd(wakeSelect, wTime, formatTime(wTime));
+      }
+
+      if (data.duration_hours) {
+        const durStr = Number(data.duration_hours).toFixed(2);
+        setSelectValueOrAdd(durationSelect, durStr, `${durStr} Hours`);
+      }
+
+      if (data.quality_score) {
+        setSelectValueOrAdd(qualitySelect, String(data.quality_score), `${data.quality_score} Quality Score`);
+      }
+
+      if (data.notes) {
+        setSelectValueOrAdd(notesSelect, data.notes, data.notes);
+      }
+    }
+
+    function setSelectValueOrAdd(selectElement, val, label) {
+      if (!selectElement || !val) return;
+      let opt = Array.from(selectElement.options).find(o => o.value === val);
+      if (!opt) {
+        opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label || val;
+        selectElement.appendChild(opt);
+      }
+      selectElement.value = val;
     }
 
     function closeLogSleepModal() {
@@ -1134,25 +1334,47 @@
       const token = getToken();
       if (!token) return;
 
-      calculateModalDuration();
       const dateStr = document.getElementById('modalSleepDate').value;
       const bedTimeInput = document.getElementById('modalBedtime').value;
       const wakeTimeInput = document.getElementById('modalWakeTime').value;
-      const duration = parseFloat(document.getElementById('modalDuration').value);
-      const quality = parseInt(document.getElementById('modalQuality').value);
-      const notes = document.getElementById('modalSleepNotes').value;
+      const durationSelect = document.getElementById('modalDuration').value;
+      const qualitySelect = document.getElementById('modalQuality').value;
+      const notesSelect = document.getElementById('modalSleepNotes').value;
 
-      const bedtimeDate = new Date(`${dateStr}T${bedTimeInput}:00`);
-      const wakeDate = new Date(`${dateStr}T${wakeTimeInput}:00`);
-      if (wakeDate <= bedtimeDate) wakeDate.setDate(wakeDate.getDate() + 1);
+      if (!durationSelect && (!bedTimeInput || !wakeTimeInput)) {
+        alert('Please select bedtime & wake time or total sleep duration.');
+        return;
+      }
+
+      if (!qualitySelect) {
+        alert('Please select a sleep quality score from the dropdown.');
+        return;
+      }
+
+      let duration = durationSelect ? parseFloat(durationSelect) : 0;
+      let bedtimeISO = null;
+      let wakeTimeISO = null;
+
+      if (bedTimeInput && wakeTimeInput) {
+        const bedtimeDate = new Date(`${dateStr}T${bedTimeInput}:00`);
+        const wakeDate = new Date(`${dateStr}T${wakeTimeInput}:00`);
+        if (wakeDate <= bedtimeDate) wakeDate.setDate(wakeDate.getDate() + 1);
+        bedtimeISO = bedtimeDate.toISOString();
+        wakeTimeISO = wakeDate.toISOString();
+
+        if (!duration) {
+          const diffMs = wakeDate - bedtimeDate;
+          duration = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+        }
+      }
 
       const payload = {
         date: dateStr,
         duration_hours: duration,
-        quality_score: quality,
-        bedtime: bedtimeDate.toISOString(),
-        wake_time: wakeDate.toISOString(),
-        notes: notes
+        quality_score: parseInt(qualitySelect, 10),
+        bedtime: bedtimeISO,
+        wake_time: wakeTimeISO,
+        notes: notesSelect || ''
       };
 
       try {

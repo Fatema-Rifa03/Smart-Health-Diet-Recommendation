@@ -52,6 +52,8 @@ pool.query(`
         ROUND(MAX(duration_hours), 1)::FLOAT AS max_duration_hours
     FROM sleep_logs
     GROUP BY user_id, DATE_TRUNC('month', date), TO_CHAR(date, 'YYYY-MM');
+
+    CREATE INDEX IF NOT EXISTS sleep_logs_user_date_idx ON sleep_logs (user_id, date DESC);
 `).catch(err => {
     console.error("Migration error (user_profiles.avatar_url, water_summary, or sleep_summary):", err.message);
 });
